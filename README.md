@@ -51,7 +51,6 @@
 | **Preview File Metadata** | Full | Limited | Limited | No |
 | **List Recent & Local Jobs** | Yes | No | Limited | Yes |
 | **Full Printer Control** | Yes | No | No | No |
-| **Multi-Printer Support** | Yes | No | No | No |
 | **Mobile/Remote Access** | Yes (WebUI) | No | No | No |
 | **Camera Preview** | Yes (Multi-Device) | Yes | Yes | Yes |
 | **Spoolman Integration** | Yes | No | No | No |
