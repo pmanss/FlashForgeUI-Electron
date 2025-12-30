@@ -108,7 +108,9 @@
       "Skill(readme-generator)",
       "Skill(biome)",
       "Bash(npx @biomejs/biome check:*)",
-      "Bash(npx @biomejs/biome lint:*)"
+      "Bash(npx @biomejs/biome lint:*)",
+      "mcp__code-search-mcp__analyze_dependencies",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "additionalDirectories": [
