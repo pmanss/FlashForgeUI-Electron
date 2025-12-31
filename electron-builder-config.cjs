@@ -166,7 +166,20 @@ module.exports = {
     linux: {
         icon: "src/icons/icon.png",
         category: "Utility",
-        target: ["AppImage", "deb", "rpm"],
+        target: [
+            {
+                target: "AppImage",
+                arch: ["x64"]
+            },
+            {
+                target: "deb",
+                arch: ["x64"]
+            },
+            {
+                target: "rpm",
+                arch: ["x64", "arm64"]  // Support both x64 and ARM64 for RPM
+            }
+        ],
         maintainer: "GhostTypes",
         vendor: "GhostTypes",
     },
