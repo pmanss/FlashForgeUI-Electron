@@ -94,6 +94,7 @@ interface CameraAPI {
   getProxyUrl: () => Promise<string>;
   restoreStream: () => Promise<boolean>;
   getStreamUrl: (contextId?: string) => Promise<string | null>;
+  getStreamConfig: (contextId?: string) => Promise<unknown>;
 }
 
 // Printer Context API interface
@@ -631,6 +632,7 @@ const electronAPI: ElectronAPI = {
       'connection-state:is-connected',
       'connection-state:get-state',
       'camera:get-stream-url',
+      'camera:get-stream-config',
       'camera:get-rtsp-relay-info',
       'printer-settings:get',
       'printer-settings:update',
@@ -770,6 +772,10 @@ const electronAPI: ElectronAPI = {
     getStreamUrl: async (contextId?: string): Promise<string | null> => {
       const result: unknown = await ipcRenderer.invoke('camera:get-stream-url', contextId);
       return typeof result === 'string' ? result : null;
+    },
+
+    getStreamConfig: async (contextId?: string): Promise<unknown> => {
+      return await ipcRenderer.invoke('camera:get-stream-config', contextId);
     },
   },
 

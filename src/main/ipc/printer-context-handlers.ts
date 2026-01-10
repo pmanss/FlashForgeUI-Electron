@@ -12,8 +12,8 @@ import type { PrinterDetails } from '@shared/types/printer.js';
 import { IpcMainInvokeEvent, ipcMain } from 'electron';
 import { getPrinterConnectionManager } from '../managers/ConnectionFlowManager.js';
 import { getPrinterContextManager } from '../managers/PrinterContextManager.js';
-import { getCameraProxyService } from '../services/CameraProxyService.js';
 import { getConnectionStateManager } from '../services/ConnectionStateManager.js';
+import { getGo2rtcService } from '../services/Go2rtcService.js';
 
 /**
  * Set up all printer context IPC handlers
@@ -145,14 +145,18 @@ export function setupCameraContextHandlers(): void {
   console.log('Setting up camera context IPC handlers...');
 
   // Get camera stream URL (with optional context ID)
+  // Now uses go2rtc WebSocket URL instead of MJPEG proxy
   ipcMain.handle('camera:get-stream-url', async (_event: IpcMainInvokeEvent, contextId?: string) => {
     try {
-      const cameraProxyService = getCameraProxyService();
-      if (contextId) {
-        return cameraProxyService.getStreamUrlForContext(contextId);
-      } else {
-        return cameraProxyService.getCurrentStreamUrl();
+      const go2rtcService = getGo2rtcService();
+      const contextManager = getPrinterContextManager();
+      const targetContextId = contextId || contextManager.getActiveContextId();
+
+      if (!targetContextId) {
+        return null;
       }
+
+      return go2rtcService.getStreamWsUrl(targetContextId);
     } catch (error) {
       console.error('Failed to get camera stream URL:', error);
       return null;

@@ -35,6 +35,14 @@ const vendorLibraries = [
   }
 ];
 
+// Local lib files to copy
+const libFiles = [
+  {
+    src: 'src/main/webui/static/lib/video-rtc.js',
+    dest: 'lib/video-rtc.js'
+  }
+];
+
 const GREEN = '\u001B[32m';
 const YELLOW = '\u001B[33m';
 const RED = '\u001B[31m';
@@ -101,6 +109,30 @@ function copyWebUIAssets() {
     }
 
     logInfo(`vendor library copy complete ${vendorCount}/${vendorLibraries.length}`);
+
+    // Copy lib files
+    let libCount = 0;
+    for (const lib of libFiles) {
+      const srcPath = lib.src;
+      const destPath = path.join(destDir, lib.dest);
+
+      // Ensure lib subdirectory exists
+      const libDir = path.dirname(destPath);
+      fs.mkdirSync(libDir, { recursive: true });
+
+      // Check if source file exists
+      if (!fs.existsSync(srcPath)) {
+        logWarn(`lib file missing ${srcPath}`);
+        continue;
+      }
+
+      // Copy the lib file
+      fs.copyFileSync(srcPath, destPath);
+      logInfo(`copied lib file ${lib.dest}`);
+      libCount++;
+    }
+
+    logInfo(`lib file copy complete ${libCount}/${libFiles.length}`);
 
   } catch (error) {
     logError(`error copying WebUI assets: ${error.message}`);

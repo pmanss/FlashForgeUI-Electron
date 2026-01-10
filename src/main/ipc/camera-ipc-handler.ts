@@ -1,41 +1,49 @@
 /**
- * @fileoverview Camera IPC handler for managing camera streaming operations across printer contexts.
+ * @fileoverview Camera IPC handler for managing camera streaming operations via go2rtc.
  *
- * Provides comprehensive camera management through IPC handlers for both MJPEG and RTSP streaming:
- * - Multi-context camera support with per-printer camera proxy servers
+ * Provides unified camera management through IPC handlers for all camera types (MJPEG and RTSP)
+ * using go2rtc as the streaming gateway. This eliminates the rotation drift bug caused by
+ * JSMpeg's canvas rendering and provides lower latency streaming via WebRTC/MSE.
+ *
+ * Key features:
+ * - Unified handling for both MJPEG and RTSP cameras through go2rtc
+ * - Multi-context camera support with per-printer stream management
  * - Automatic camera configuration resolution based on printer capabilities and user preferences
- * - RTSP stream relay for streaming RTSP camera feeds via WebSocket (5M Pro)
- * - MJPEG camera proxy setup with unique port allocation per context
- * - Camera stream restoration and error recovery mechanisms
- * - Integration with per-printer settings for camera source configuration
+ * - Native <video> element playback (no canvas = no rotation drift)
+ * - Automatic reconnection built into go2rtc
  *
  * Key exports:
  * - CameraIPCHandler class: Main handler for all camera-related IPC operations
  * - cameraIPCHandler singleton: Pre-initialized handler instance
  *
- * The handler coordinates with CameraProxyService, RtspStreamService, and PrinterContextManager
- * to provide seamless camera streaming across multiple printer connections. Each printer context
- * maintains its own camera proxy on a unique port (8181-8191 range).
+ * The handler coordinates with Go2rtcService and PrinterContextManager to provide seamless
+ * camera streaming across multiple printer connections.
+ *
+ * @see src/main/services/Go2rtcService.ts for the streaming gateway
+ * @see src/main/services/Go2rtcBinaryManager.ts for binary lifecycle
  */
 
 import { logVerbose } from '@shared/logging.js';
-import { CameraProxyStatus, ResolvedCameraConfig } from '@shared/types/camera/index.js';
+import { Go2rtcCameraStreamConfig, ResolvedCameraConfig } from '@shared/types/camera/index.js';
 import { IpcMainInvokeEvent, ipcMain } from 'electron';
 import { getPrinterBackendManager } from '../managers/PrinterBackendManager.js';
 import { getPrinterContextManager } from '../managers/PrinterContextManager.js';
-import { getCameraProxyService } from '../services/CameraProxyService.js';
-import { getRtspStreamService } from '../services/RtspStreamService.js';
-import { formatCameraProxyUrl, getCameraUserConfig, resolveCameraConfig } from '../utils/camera-utils.js';
+import { getGo2rtcService, Go2rtcService } from '../services/Go2rtcService.js';
+import { getCameraUserConfig, resolveCameraConfig } from '../utils/camera-utils.js';
 
-/**
- * Camera IPC handler class
- */
 const CAMERA_IPC_LOG_NAMESPACE = 'CameraIPCHandler';
 
+/**
+ * Camera IPC handler class using go2rtc for unified streaming.
+ */
 export class CameraIPCHandler {
-  private readonly cameraProxyService = getCameraProxyService();
-  private readonly rtspStreamService = getRtspStreamService();
+  private readonly go2rtcService: Go2rtcService;
   private readonly contextManager = getPrinterContextManager();
+
+  constructor() {
+    this.go2rtcService = getGo2rtcService();
+  }
+
   private logDebug(message: string, ...args: unknown[]): void {
     logVerbose(CAMERA_IPC_LOG_NAMESPACE, message, ...args);
   }
@@ -46,12 +54,11 @@ export class CameraIPCHandler {
   public initialize(): void {
     this.registerHandlers();
     this.setupConfigListeners();
-
-    this.logDebug('Camera IPC handlers initialized');
+    this.logDebug('Camera IPC handlers initialized (go2rtc mode)');
   }
 
   /**
-   * Get the active context ID, or create a default context if none exists
+   * Get the active context ID, or warn if none exists
    */
   private getActiveContextId(): string {
     const activeContextId = this.contextManager.getActiveContextId();
@@ -59,8 +66,6 @@ export class CameraIPCHandler {
       return activeContextId;
     }
 
-    // For backward compatibility with single-printer mode,
-    // create a default context if none exists
     console.warn('No active context found, camera operations may not work correctly');
     return 'default-context';
   }
@@ -69,33 +74,41 @@ export class CameraIPCHandler {
    * Register IPC handlers
    */
   private registerHandlers(): void {
-    // Get camera proxy port
+    // Get go2rtc API port
     ipcMain.handle('camera:get-proxy-port', async (): Promise<number> => {
-      const status = this.cameraProxyService.getStatus();
-      return status.port;
+      return this.go2rtcService.getApiPort();
     });
 
-    // Get camera proxy status
-    ipcMain.handle(
-      'camera:get-status',
-      async (_event: IpcMainInvokeEvent, contextId?: string): Promise<CameraProxyStatus | null> => {
-        if (typeof contextId === 'string' && contextId.length > 0) {
-          return this.cameraProxyService.getStatusForContext(contextId);
+    // Get service status
+    ipcMain.handle('camera:get-status', async (_event: IpcMainInvokeEvent, contextId?: string): Promise<unknown> => {
+      const targetContextId = typeof contextId === 'string' && contextId.length > 0 ? contextId : this.getActiveContextId();
+      const streamConfig = this.go2rtcService.getStreamConfig(targetContextId);
+      const serviceStatus = this.go2rtcService.getServiceStatus();
+
+      return {
+        isRunning: serviceStatus.isRunning,
+        port: serviceStatus.webrtcPort,
+        proxyUrl: streamConfig?.wsUrl ?? '',
+        isStreaming: streamConfig !== null,
+        sourceUrl: null, // Not exposed in go2rtc
+        clientCount: 0, // go2rtc doesn't expose per-stream client count easily
+        clients: [],
+        lastError: serviceStatus.lastError ?? null,
+        stats: {
+          bytesReceived: 0,
+          bytesSent: 0,
+          successfulConnections: 0,
+          failedConnections: 0,
+          currentRetryCount: 0,
+          framesReceived: 0
         }
+      };
+    });
 
-        return this.cameraProxyService.getStatus();
-      }
-    );
-
-    // Enable/disable camera preview
+    // Enable/disable camera preview (no-op, kept for compatibility)
     ipcMain.handle('camera:set-enabled', async (_event: IpcMainInvokeEvent, enabled: boolean): Promise<void> => {
-      // This controls whether the UI should display the camera preview
-      // The camera proxy server continues running - only the client disconnects
       this.logDebug(`Camera preview ${enabled ? 'enabled' : 'disabled'} by renderer`);
-
-      // NOTE: We don't remove the camera proxy context here
-      // The proxy stays running for the printer context until the printer disconnects
-      // This allows instant camera switching when tabbing between printers
+      // go2rtc handles client connections automatically, no action needed
     });
 
     // Get resolved camera configuration
@@ -109,76 +122,92 @@ export class CameraIPCHandler {
       return config;
     });
 
-    // Get camera proxy URL
+    // Get go2rtc stream configuration for UI - the main handler for video-rtc element
+    ipcMain.handle(
+      'camera:get-stream-config',
+      async (_event: IpcMainInvokeEvent, contextId?: string): Promise<Go2rtcCameraStreamConfig | null> => {
+        const targetContextId = typeof contextId === 'string' && contextId.length > 0 ? contextId : this.getActiveContextId();
+        this.logDebug(`[camera:get-stream-config] Getting stream config for context: ${targetContextId}`);
+
+        const streamConfig = this.go2rtcService.getStreamConfig(targetContextId);
+
+        if (!streamConfig) {
+          this.logDebug(`[camera:get-stream-config] No stream found for context: ${targetContextId}`);
+          return null;
+        }
+
+        this.logDebug(`[camera:get-stream-config] Returning stream config:`, streamConfig);
+
+        return {
+          wsUrl: streamConfig.wsUrl,
+          sourceType: streamConfig.sourceType,
+          streamType: streamConfig.streamType,
+          mode: streamConfig.mode,
+          isAvailable: streamConfig.isAvailable,
+          streamName: streamConfig.streamName,
+          apiPort: streamConfig.apiPort
+        };
+      }
+    );
+
+    // Legacy handler - get proxy URL (returns go2rtc WebSocket URL)
     ipcMain.handle('camera:get-proxy-url', async (): Promise<string> => {
       const activeContextId = this.getActiveContextId();
       this.logDebug(`[camera:get-proxy-url] Active context ID: ${activeContextId}`);
 
-      const status = this.cameraProxyService.getStatusForContext(activeContextId);
-      this.logDebug(`[camera:get-proxy-url] Status for context ${activeContextId}:`, status);
+      const wsUrl = this.go2rtcService.getStreamWsUrl(activeContextId);
+      this.logDebug(`[camera:get-proxy-url] WebSocket URL: ${wsUrl}`);
 
-      if (!status || !status.isRunning) {
-        this.logDebug('[camera:get-proxy-url] No camera running, returning invalid URL');
-        return 'http://localhost:0/camera'; // Invalid port signals no camera
+      if (!wsUrl) {
+        return 'ws://localhost:0/api/ws?src=none'; // Invalid URL signals no camera
       }
 
-      const proxyUrl = formatCameraProxyUrl(status.port);
-      this.logDebug(`[camera:get-proxy-url] Returning proxy URL: ${proxyUrl}`);
-      return proxyUrl;
+      return wsUrl;
     });
 
-    // Get RTSP stream info (for RTSP cameras) - used by WebUI
+    // Legacy handler - get RTSP info (now unified with MJPEG via go2rtc)
     ipcMain.handle('camera:get-rtsp-info', async (): Promise<{ wsPort: number; ffmpegAvailable: boolean } | null> => {
       const activeContextId = this.getActiveContextId();
-      const streamStatus = this.rtspStreamService.getStreamStatus(activeContextId);
-      const ffmpegStatus = this.rtspStreamService.getFfmpegStatus();
+      const streamConfig = this.go2rtcService.getStreamConfig(activeContextId);
 
-      if (!streamStatus) {
+      if (!streamConfig) {
         return null;
       }
 
+      // go2rtc handles transcoding internally, ffmpeg is always "available" from go2rtc perspective
       return {
-        wsPort: streamStatus.wsPort,
-        ffmpegAvailable: ffmpegStatus.available,
+        wsPort: streamConfig.apiPort,
+        ffmpegAvailable: true
       };
     });
 
-    // Get RTSP stream WebSocket URL for desktop app (full ws:// URL)
+    // Legacy handler - get RTSP relay info (returns go2rtc WebSocket URL)
     ipcMain.handle('camera:get-rtsp-relay-info', async (): Promise<{ wsUrl: string } | null> => {
       const activeContextId = this.getActiveContextId();
-      const streamStatus = this.rtspStreamService.getStreamStatus(activeContextId);
+      const wsUrl = this.go2rtcService.getStreamWsUrl(activeContextId);
 
-      if (!streamStatus || !streamStatus.isActive) {
-        this.logDebug(`[camera:get-rtsp-relay-info] No RTSP stream active for context ${activeContextId}`);
+      if (!wsUrl) {
+        this.logDebug(`[camera:get-rtsp-relay-info] No stream active for context ${activeContextId}`);
         return null;
       }
 
-      // Construct full WebSocket URL for desktop JSMpeg player
-      // node-rtsp-stream creates a direct WebSocket server on the allocated port
-      const wsUrl = `ws://localhost:${streamStatus.wsPort}`;
-      this.logDebug(`[camera:get-rtsp-relay-info] RTSP stream URL for context ${activeContextId}: ${wsUrl}`);
-
+      this.logDebug(`[camera:get-rtsp-relay-info] Stream URL for context ${activeContextId}: ${wsUrl}`);
       return { wsUrl };
     });
 
-    // Manual camera stream restoration (for stuck streams)
+    // Manual camera stream restoration
     ipcMain.handle('camera:restore-stream', async (): Promise<boolean> => {
       try {
         this.logDebug('Manual camera stream restoration requested');
 
-        // Get current camera config
-        const config = await this.getCurrentCameraConfig();
-        if (!config || !config.streamUrl) {
+        const contextId = this.getActiveContextId();
+
+        if (!this.go2rtcService.hasStream(contextId)) {
+          this.logDebug('No stream to restore for context:', contextId);
           return false;
         }
 
-        const contextId = this.getActiveContextId();
-
-        // Force reconnect by resetting the stream URL
-        await this.cameraProxyService.removeContext(contextId);
-        await new Promise((resolve) => setTimeout(resolve, 100)); // Small delay
-        await this.cameraProxyService.setStreamUrl(contextId, config.streamUrl);
-
+        await this.go2rtcService.restartStream(contextId);
         return true;
       } catch (error) {
         console.error('Camera stream restoration failed:', error);
@@ -210,32 +239,18 @@ export class CameraIPCHandler {
 
     const config = await this.getCurrentCameraConfigForContext(contextId);
 
-    if (config && config.isAvailable && config.streamUrl) {
+    if (config && config.isAvailable && config.streamUrl && config.streamType) {
       this.logDebug(`[CameraIPC] Camera config updated for ${contextId}: ${config.sourceType} - ${config.streamUrl}`);
 
-      // Handle based on stream type
-      if (config.streamType === 'rtsp') {
-        try {
-          // Get RTSP settings from printer details
-          const { rtspFrameRate, rtspQuality } = context.printerDetails;
-
-          await this.rtspStreamService.setupStream(contextId, config.streamUrl, {
-            frameRate: rtspFrameRate,
-            quality: rtspQuality,
-          });
-          this.logDebug(`[CameraIPC] RTSP stream setup for context ${contextId}`);
-        } catch (error) {
-          console.warn(`[CameraIPC] Failed to setup RTSP stream for context ${contextId}:`, error);
-        }
-      } else {
-        // MJPEG: Use camera proxy service
-        await this.cameraProxyService.setStreamUrl(contextId, config.streamUrl);
-        this.logDebug(`[CameraIPC] Camera proxy setup for context ${contextId}`);
+      try {
+        await this.go2rtcService.addStream(contextId, config.streamUrl, config.sourceType, config.streamType);
+        this.logDebug(`[CameraIPC] go2rtc stream setup for context ${contextId}`);
+      } catch (error) {
+        console.warn(`[CameraIPC] Failed to setup go2rtc stream for context ${contextId}:`, error);
       }
     } else {
-      this.logDebug(`[CameraIPC] No camera available for context ${contextId}, removing proxy`);
-      await this.cameraProxyService.removeContext(contextId);
-      await this.rtspStreamService.stopStream(contextId);
+      this.logDebug(`[CameraIPC] No camera available for context ${contextId}, removing stream`);
+      await this.go2rtcService.removeStream(contextId);
     }
   }
 
@@ -271,25 +286,26 @@ export class CameraIPCHandler {
     return resolveCameraConfig({
       printerIpAddress,
       printerFeatures: backendStatus.features,
-      userConfig: getCameraUserConfig(contextId),
+      userConfig: getCameraUserConfig(contextId)
     });
   }
 
   /**
-   * Get current camera configuration for the active context
-   * @deprecated Use getCurrentCameraConfigForContext(contextId) instead
-   */
-  private async getCurrentCameraConfig(): Promise<ResolvedCameraConfig | null> {
-    const activeContextId = this.getActiveContextId();
-    return this.getCurrentCameraConfigForContext(activeContextId);
-  }
-
-  /**
-   * Handle printer connection - update camera URL
+   * Handle printer connection - setup camera stream
    * @param contextId - The context ID of the connected printer
    */
   public async handlePrinterConnected(contextId: string): Promise<void> {
     this.logDebug(`Handling printer connection for camera setup (context: ${contextId})`);
+
+    // Ensure go2rtc service is initialized
+    if (!this.go2rtcService.isRunning()) {
+      try {
+        await this.go2rtcService.initialize();
+      } catch (error) {
+        console.error('[CameraIPC] Failed to initialize go2rtc service:', error);
+        return;
+      }
+    }
 
     // Get context from context manager
     const context = this.contextManager.getContext(contextId);
@@ -300,47 +316,32 @@ export class CameraIPCHandler {
 
     const config = await this.getCurrentCameraConfigForContext(contextId);
 
-    if (config && config.isAvailable && config.streamUrl) {
+    if (config && config.isAvailable && config.streamUrl && config.streamType) {
       this.logDebug(
-        `Setting camera stream URL for context ${contextId}: ${config.streamUrl} (${config.sourceType}, ${config.streamType})`
+        `Setting camera stream for context ${contextId}: ${config.streamUrl} (${config.sourceType}, ${config.streamType})`
       );
 
-      // Handle based on stream type
-      if (config.streamType === 'rtsp') {
-        // RTSP: Setup stream for desktop JSMpeg player
-        try {
-          // Get RTSP settings from printer details
-          const { rtspFrameRate, rtspQuality } = context.printerDetails;
-
-          await this.rtspStreamService.setupStream(contextId, config.streamUrl, {
-            frameRate: rtspFrameRate,
-            quality: rtspQuality,
-          });
-          this.logDebug(`RTSP stream setup for context ${contextId}`);
-        } catch (error) {
-          console.warn(`Failed to setup RTSP stream for context ${contextId}:`, error);
-          // Non-fatal - will retry on next connection attempt
-        }
-      } else {
-        // MJPEG: Use camera proxy service
-        await this.cameraProxyService.setStreamUrl(contextId, config.streamUrl);
+      try {
+        await this.go2rtcService.addStream(contextId, config.streamUrl, config.sourceType, config.streamType);
+        this.logDebug(`go2rtc stream setup for context ${contextId}`);
+      } catch (error) {
+        console.warn(`Failed to setup go2rtc stream for context ${contextId}:`, error);
+        // Non-fatal - will retry on next connection attempt
       }
     } else {
       this.logDebug(`No camera available for context ${contextId}`);
-      await this.cameraProxyService.removeContext(contextId);
-      await this.rtspStreamService.stopStream(contextId);
+      await this.go2rtcService.removeStream(contextId);
     }
   }
 
   /**
-   * Handle printer disconnection - clear camera URL
+   * Handle printer disconnection - remove camera stream
    * @param contextId - Optional context ID (defaults to active context if not provided)
    */
   public async handlePrinterDisconnected(contextId?: string): Promise<void> {
-    this.logDebug('Clearing camera stream URL due to printer disconnection');
+    this.logDebug('Clearing camera stream due to printer disconnection');
     const targetContextId = contextId || this.getActiveContextId();
-    await this.cameraProxyService.removeContext(targetContextId);
-    await this.rtspStreamService.stopStream(targetContextId);
+    await this.go2rtcService.removeStream(targetContextId);
   }
 
   /**
@@ -352,8 +353,10 @@ export class CameraIPCHandler {
     ipcMain.removeHandler('camera:get-status');
     ipcMain.removeHandler('camera:set-enabled');
     ipcMain.removeHandler('camera:get-config');
+    ipcMain.removeHandler('camera:get-stream-config');
     ipcMain.removeHandler('camera:get-proxy-url');
     ipcMain.removeHandler('camera:get-rtsp-info');
+    ipcMain.removeHandler('camera:get-rtsp-relay-info');
     ipcMain.removeHandler('camera:restore-stream');
 
     // Remove context update listeners

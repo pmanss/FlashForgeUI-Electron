@@ -20,6 +20,6 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["app.ts", "grid/**/*.ts", "../../../../src/shared/types/jsmpeg.d.ts"],
+  "include": ["app.ts", "grid/**/*.ts"],
   "exclude": ["node_modules"]
 }

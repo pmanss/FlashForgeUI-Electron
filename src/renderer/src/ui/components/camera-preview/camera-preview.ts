@@ -2,35 +2,34 @@
  * @fileoverview Camera Preview with Integrated Job Info Component
  *
  * This component handles the display and management of camera preview streams
- * from FlashForge 3D printers while integrating job information display at the bottom.
- * It provides a seamless visual unit that fills the left side properly, combining
- * camera functionality with real-time job progress information.
+ * from FlashForge 3D printers using go2rtc as the streaming gateway. It provides
+ * a seamless visual unit combining camera functionality with real-time job progress.
  *
  * Key features:
- * - MJPEG camera stream display with proper cleanup
+ * - Unified camera streaming via go2rtc (WebRTC/MSE/MJPEG fallback)
+ * - Native <video> element playback (no canvas = no rotation drift)
  * - Integrated job information panel at the bottom
  * - Camera preview toggle button within the component
  * - Real-time job progress updates via polling system
  * - Progress bar styling based on printer state
- * - Camera configuration resolution via window.api.camera
- * - State management for disabled/loading/streaming/error states
- * - Proper image element lifecycle management
- * - Integration with camera proxy service
+ * - Automatic reconnection built into go2rtc
  *
- * The component creates one cohesive visual unit that matches the original
- * seamless design where camera and job info were integrated together.
+ * @see src/main/services/Go2rtcService.ts for the streaming gateway
  */
 
 import { logVerbose } from '@shared/logging.js';
-import type { CameraProxyStatus, ResolvedCameraConfig } from '@shared/types/camera/camera.types.js';
-import type { JSMpegPlayerInstance } from '@shared/types/jsmpeg.d.ts';
+import type { Go2rtcCameraStreamConfig, ResolvedCameraConfig } from '@shared/types/camera/camera.types.js';
 import type { PrinterContextInfo } from '@shared/types/PrinterContext.js';
 import type { CurrentJobInfo, PollingData, PrinterState } from '@shared/types/polling.js';
+import { VideoRTC } from '../../../lib/video-rtc.js';
 import { BaseComponent } from '../base/component.js';
 import type { ComponentUpdateData } from '../base/types.js';
 import './camera-preview.css';
 
-import JSMpeg from '@cycjimmy/jsmpeg-player';
+// Register the video-rtc custom element if not already registered
+if (!customElements.get('video-rtc')) {
+  customElements.define('video-rtc', VideoRTC);
+}
 
 const CAMERA_PREVIEW_LOG_NAMESPACE = 'CameraPreviewComponent';
 
@@ -40,8 +39,17 @@ const CAMERA_PREVIEW_LOG_NAMESPACE = 'CameraPreviewComponent';
 type CameraState = 'disabled' | 'loading' | 'streaming' | 'error';
 
 /**
- * Camera preview component that displays MJPEG streams from printers
- * Handles camera configuration, proxy integration, and stream lifecycle
+ * Interface for the video-rtc custom element
+ */
+interface VideoRTCElement extends HTMLElement {
+  src: string;
+  mode: string;
+  media: string;
+}
+
+/**
+ * Camera preview component that displays streams from printers via go2rtc
+ * Handles camera configuration, stream lifecycle, and job info display
  */
 export class CameraPreviewComponent extends BaseComponent {
   /** Component identifier */
@@ -53,7 +61,7 @@ export class CameraPreviewComponent extends BaseComponent {
       <div class="camera-view">
         <div class="no-camera">Preview Disabled</div>
       </div>
-      <div class="fps-overlay" id="fps-overlay" hidden>-- FPS</div>
+      <div class="fps-overlay" id="fps-overlay" hidden>Streaming</div>
     </div>
     <div class="job-info-overlay">
       <div class="job-row">
@@ -74,11 +82,8 @@ export class CameraPreviewComponent extends BaseComponent {
   /** Current preview enabled state */
   private previewEnabled = false;
 
-  /** Current camera stream element (img for MJPEG, canvas for RTSP) */
-  private cameraStreamElement: HTMLImageElement | HTMLCanvasElement | null = null;
-
-  /** JSMpeg player instance for RTSP streams */
-  private jsmpegPlayer: JSMpegPlayerInstance | null = null;
+  /** Current video-rtc element */
+  private videoRtcElement: VideoRTCElement | null = null;
 
   /** Current camera state for visual feedback */
   private currentState: CameraState = 'disabled';
@@ -92,40 +97,12 @@ export class CameraPreviewComponent extends BaseComponent {
   /** Active printer context ID */
   private activeContextId: string | null = null;
 
-  /** Backend heartbeat monitoring interval */
-  private backendHeartbeatIntervalId: number | null = null;
-
-  /** Last byte count reported by the backend */
-  private lastBackendBytesReceived: number | null = null;
-
-  /** Timestamp of the last confirmed backend activity */
-  private lastBackendActivityTimestamp: number | null = null;
-
-  /** Prevent overlapping heartbeat polls */
-  private isHeartbeatPolling = false;
-
-  /** True while a watchdog restart is in progress */
-  private isRestartingStream = false;
-
-  /** Heartbeat cadence and timeout thresholds */
-  private readonly heartbeatCheckIntervalMs = 5000;
-  private readonly heartbeatTimeoutMs = 10000;
-
   /** Reference to remove the global visibility listener */
   private readonly visibilityChangeHandler: () => void;
 
-  /** FPS overlay state */
+  /** FPS/Status overlay state */
   private showFpsOverlay = false;
-  private lastFpsFrameCount: number | null = null;
-  private lastFpsTimestamp: number | null = null;
-  private currentFps: number | null = null;
-  private fpsUpdateIntervalId: number | null = null;
-  /** FPS update interval in ms */
-  private readonly fpsUpdateIntervalMs = 1000;
 
-  /** RTSP-specific FPS tracking */
-  private isRtspStream = false;
-  private rtspFrameCount = 0;
   private logDebug(message: string, ...args: unknown[]): void {
     logVerbose(CAMERA_PREVIEW_LOG_NAMESPACE, message, ...args);
   }
@@ -154,121 +131,10 @@ export class CameraPreviewComponent extends BaseComponent {
     const shouldShow = this.showFpsOverlay && this.previewEnabled && this.currentState === 'streaming';
     if (shouldShow) {
       fpsOverlay.removeAttribute('hidden');
-      this.startFpsUpdateInterval();
+      fpsOverlay.textContent = 'Streaming';
     } else {
       fpsOverlay.setAttribute('hidden', '');
-      this.stopFpsUpdateInterval();
     }
-  }
-
-  /**
-   * Start dedicated FPS update interval for smoother display
-   */
-  private startFpsUpdateInterval(): void {
-    if (this.fpsUpdateIntervalId !== null) return;
-
-    this.fpsUpdateIntervalId = window.setInterval(() => {
-      void this.updateFpsFromStats();
-    }, this.fpsUpdateIntervalMs);
-
-    // Initial update
-    void this.updateFpsFromStats();
-  }
-
-  /**
-   * Stop FPS update interval
-   */
-  private stopFpsUpdateInterval(): void {
-    if (this.fpsUpdateIntervalId !== null) {
-      window.clearInterval(this.fpsUpdateIntervalId);
-      this.fpsUpdateIntervalId = null;
-    }
-  }
-
-  /**
-   * Fetch camera stats and calculate actual FPS from frame count
-   * For MJPEG: polls backend stats
-   * For RTSP: uses local frame counter from onVideoDecode callback
-   */
-  private async updateFpsFromStats(): Promise<void> {
-    if (!this.activeContextId || !this.showFpsOverlay) return;
-
-    try {
-      let currentFrames: number;
-      const currentTime = Date.now();
-
-      if (this.isRtspStream) {
-        // RTSP: Use local frame counter from onVideoDecode
-        currentFrames = this.rtspFrameCount;
-      } else {
-        // MJPEG: Poll backend for stats
-        const status = await window.api.camera.getStatus(this.activeContextId);
-        if (!status?.stats) return;
-        currentFrames = status.stats.framesReceived ?? 0;
-      }
-
-      this.calculateFps(currentFrames, currentTime);
-    } catch {
-      // Silently ignore errors during FPS polling
-    }
-  }
-
-  /**
-   * Update FPS display with current calculated value
-   */
-  private updateFpsDisplay(): void {
-    const fpsOverlay = this.findElementById('fps-overlay');
-    if (!fpsOverlay) return;
-
-    if (this.currentFps !== null && this.currentFps > 0) {
-      fpsOverlay.textContent = `${Math.round(this.currentFps)} FPS`;
-    } else {
-      fpsOverlay.textContent = '-- FPS';
-    }
-  }
-
-  /**
-   * Calculate FPS from actual frame count delta
-   */
-  private calculateFps(currentFrames: number, currentTime: number): void {
-    if (this.lastFpsFrameCount === null || this.lastFpsTimestamp === null) {
-      this.lastFpsFrameCount = currentFrames;
-      this.lastFpsTimestamp = currentTime;
-      return;
-    }
-
-    const framesDelta = currentFrames - this.lastFpsFrameCount;
-    const timeDeltaMs = currentTime - this.lastFpsTimestamp;
-
-    if (timeDeltaMs > 0 && framesDelta >= 0) {
-      // Calculate actual FPS from frame count
-      const fps = (framesDelta / timeDeltaMs) * 1000;
-
-      // Apply light smoothing to reduce jitter
-      if (this.currentFps !== null && this.currentFps > 0) {
-        this.currentFps = this.currentFps * 0.2 + fps * 0.8;
-      } else {
-        this.currentFps = fps;
-      }
-
-      this.updateFpsDisplay();
-    }
-
-    this.lastFpsFrameCount = currentFrames;
-    this.lastFpsTimestamp = currentTime;
-  }
-
-  /**
-   * Reset FPS calculation state
-   */
-  private resetFpsTracking(): void {
-    this.lastFpsFrameCount = null;
-    this.lastFpsTimestamp = null;
-    this.currentFps = null;
-    this.rtspFrameCount = 0;
-    this.isRtspStream = false;
-    this.stopFpsUpdateInterval();
-    this.updateFpsDisplay();
   }
 
   constructor(parentElement: HTMLElement) {
@@ -281,7 +147,7 @@ export class CameraPreviewComponent extends BaseComponent {
    */
   protected async onInitialized(): Promise<void> {
     this.updateComponentState('disabled');
-    this.logDebug('Camera preview component initialized');
+    this.logDebug('Camera preview component initialized (go2rtc mode)');
     await this.initializeActiveContext();
     await this.loadFpsOverlaySetting();
     document.addEventListener('visibilitychange', this.visibilityChangeHandler);
@@ -293,7 +159,7 @@ export class CameraPreviewComponent extends BaseComponent {
   }
 
   /**
-   * Determine the currently active printer context for heartbeat monitoring
+   * Determine the currently active printer context
    */
   private async initializeActiveContext(): Promise<void> {
     try {
@@ -307,7 +173,6 @@ export class CameraPreviewComponent extends BaseComponent {
 
   /**
    * Set up event listeners for the integrated component
-   * Includes camera preview toggle button and context switching
    */
   protected async setupEventListeners(): Promise<void> {
     const previewButton = this.findElementById<HTMLButtonElement>('btn-preview');
@@ -331,7 +196,6 @@ export class CameraPreviewComponent extends BaseComponent {
   private async handleContextSwitch(contextId: string): Promise<void> {
     this.logDebug(`[CameraPreview] Context switched to ${contextId}`);
     this.activeContextId = contextId;
-    this.resetHeartbeatTracking();
 
     // Reload FPS overlay setting for new printer context
     await this.loadFpsOverlaySetting();
@@ -348,7 +212,7 @@ export class CameraPreviewComponent extends BaseComponent {
       // Re-enable for new context
       await this.enableCameraPreview(button, cameraView);
     } else {
-      // If preview is disabled, clear any stale image and show "Preview Disabled" state
+      // If preview is disabled, clear any stale content and show "Preview Disabled" state
       this.cleanupCameraStream();
       cameraView.innerHTML = '<div class="no-camera">Preview Disabled</div>';
     }
@@ -356,7 +220,6 @@ export class CameraPreviewComponent extends BaseComponent {
 
   /**
    * Update component with new polling data
-   * Updates job information, progress, and progress bar state styling
    */
   update(data: ComponentUpdateData): void {
     this.updateState(data);
@@ -369,7 +232,6 @@ export class CameraPreviewComponent extends BaseComponent {
     const printerStatus = pollingData.printerStatus;
 
     if (!printerStatus) {
-      // No printer connected - clear job display
       this.updateJobDisplay(null);
       this.currentPrinterState = null;
       this.updateProgressBarState('Ready');
@@ -388,8 +250,7 @@ export class CameraPreviewComponent extends BaseComponent {
   }
 
   /**
-   * Handle camera preview toggle button click (internal event handler)
-   * Integrated version of the toggle functionality
+   * Handle camera preview toggle button click
    */
   private async handleCameraPreviewToggle(event: Event): Promise<void> {
     this.assertInitialized();
@@ -405,8 +266,6 @@ export class CameraPreviewComponent extends BaseComponent {
 
   /**
    * Toggle camera preview on/off
-   * This method can be called internally or externally
-   * @param button - The button element that triggered the toggle (for state updates)
    */
   async togglePreview(button: HTMLElement): Promise<void> {
     this.assertInitialized();
@@ -419,7 +278,6 @@ export class CameraPreviewComponent extends BaseComponent {
     }
 
     try {
-      // Toggle preview state
       this.previewEnabled = !this.previewEnabled;
       button.textContent = this.previewEnabled ? 'Loading...' : 'Preview Off';
 
@@ -435,7 +293,7 @@ export class CameraPreviewComponent extends BaseComponent {
   }
 
   /**
-   * Enable camera preview - check configuration and start stream
+   * Enable camera preview - get go2rtc stream config and start video-rtc
    */
   private async enableCameraPreview(button: HTMLElement, cameraView: HTMLElement): Promise<void> {
     this.updateComponentState('loading');
@@ -449,7 +307,7 @@ export class CameraPreviewComponent extends BaseComponent {
       await this.initializeActiveContext();
     }
 
-    // Check camera availability
+    // Check camera availability first
     this.logDebug('[CameraPreview] Calling window.api.camera.getConfig()...');
     const cameraConfigRaw = await window.api.camera.getConfig();
     this.logDebug('[CameraPreview] Got camera config:', cameraConfigRaw);
@@ -463,49 +321,22 @@ export class CameraPreviewComponent extends BaseComponent {
     if (!cameraConfig.isAvailable) {
       const reason = cameraConfig.unavailableReason || 'Camera not available';
       this.handleCameraError(button, cameraView, reason);
-
-      // Show helpful message based on reason
-      if (reason.includes('does not have a built-in camera')) {
-        this.logDebug('Enable custom camera in settings to use an external camera');
-      } else if (reason.includes('URL')) {
-        this.logDebug('Please configure camera URL in settings');
-      }
       return;
     }
 
-    this.logDebug(`Enabling camera preview from: ${cameraConfig.sourceType} camera (${cameraConfig.streamType})`);
+    // Get the go2rtc stream configuration
+    this.logDebug('[CameraPreview] Getting go2rtc stream config...');
+    const streamConfig = (await window.api.invoke('camera:get-stream-config')) as Go2rtcCameraStreamConfig | null;
 
-    // Handle based on stream type
-    if (cameraConfig.streamType === 'rtsp') {
-      // RTSP: Use node-rtsp-stream WebSocket + JSMpeg player
-      this.logDebug('[CameraPreview] Setting up RTSP stream (node-rtsp-stream + JSMpeg)');
-
-      // Get the RTSP stream WebSocket URL from backend
-      const rtspStreamInfo = (await window.api.invoke('camera:get-rtsp-relay-info')) as { wsUrl: string } | null;
-
-      if (!rtspStreamInfo || !rtspStreamInfo.wsUrl) {
-        this.handleCameraError(button, cameraView, 'RTSP stream not available');
-        return;
-      }
-
-      // Reset tracking state BEFORE creating stream (so createRtspStream can set isRtspStream)
-      this.stopBackendHeartbeat();
-      this.resetHeartbeatTracking();
-
-      this.logDebug('[CameraPreview] RTSP stream WebSocket URL:', rtspStreamInfo.wsUrl);
-      this.createRtspStream(rtspStreamInfo.wsUrl, cameraView);
-    } else {
-      // MJPEG: Use proxy URL
-      this.logDebug('[CameraPreview] Calling window.api.camera.getProxyUrl()...');
-      const proxyUrl = await window.api.camera.getProxyUrl();
-      this.logDebug('[CameraPreview] Got proxy URL:', proxyUrl);
-      const streamUrl = `${proxyUrl}`; // The proxy URL already includes /camera
-      this.logDebug('[CameraPreview] Final stream URL:', streamUrl);
-      this.createMjpegStream(streamUrl, cameraView);
-      this.resetHeartbeatTracking();
-      this.lastBackendActivityTimestamp = Date.now();
-      this.startBackendHeartbeat();
+    if (!streamConfig || !streamConfig.wsUrl) {
+      this.handleCameraError(button, cameraView, 'Camera stream not available');
+      return;
     }
+
+    this.logDebug(`[CameraPreview] Stream config:`, streamConfig);
+
+    // Create video-rtc element for unified streaming
+    this.createVideoRtcStream(streamConfig.wsUrl, streamConfig.mode, cameraView);
 
     // Update button state
     button.textContent = 'Preview Off';
@@ -520,7 +351,6 @@ export class CameraPreviewComponent extends BaseComponent {
 
     // Clean up stream
     this.cleanupCameraStream();
-    this.stopBackendHeartbeat();
 
     // Restore the no-camera message
     cameraView.innerHTML = '<div class="no-camera">Preview Disabled</div>';
@@ -534,120 +364,45 @@ export class CameraPreviewComponent extends BaseComponent {
   }
 
   /**
-   * Create and setup MJPEG camera stream using img element
+   * Create and setup video-rtc element for camera streaming
+   * This handles both MJPEG and RTSP sources through go2rtc
    */
-  private createMjpegStream(streamUrl: string, cameraView: HTMLElement): void {
-    // Mark as MJPEG stream for FPS tracking
-    this.isRtspStream = false;
-
+  private createVideoRtcStream(wsUrl: string, mode: string, cameraView: HTMLElement): void {
     // Clear existing content
     cameraView.innerHTML = '';
 
-    // Create image element for MJPEG stream
-    const imgElement = document.createElement('img');
-    imgElement.src = streamUrl;
-    imgElement.style.width = '100%';
-    imgElement.style.height = '100%';
-    imgElement.style.objectFit = 'cover';
-    imgElement.alt = 'Camera Stream';
+    // Create video-rtc element
+    const element = document.createElement('video-rtc') as VideoRTCElement;
+    element.src = wsUrl;
+    element.mode = mode;
+    element.media = 'video'; // Video only, no audio for camera feeds
 
-    imgElement.onload = () => {
-      this.updateComponentState('streaming');
-    };
-
-    imgElement.onerror = () => {
-      console.error('MJPEG stream failed to load');
-      this.updateComponentState('error');
-      if (this.previewEnabled) {
-        void this.restartMjpegStream('img-error');
-      }
-    };
+    // Style the element
+    element.style.width = '100%';
+    element.style.height = '100%';
+    element.style.objectFit = 'cover';
+    element.style.display = 'block';
 
     // Add to view
-    cameraView.appendChild(imgElement);
-    this.cameraStreamElement = imgElement;
+    cameraView.appendChild(element);
+    this.videoRtcElement = element;
+
+    this.logDebug(`[CameraPreview] video-rtc element created: ${wsUrl} (mode: ${mode})`);
   }
 
   /**
-   * Create and setup RTSP camera stream using JSMpeg + node-rtsp-stream
-   */
-  private createRtspStream(wsUrl: string, cameraView: HTMLElement): void {
-    // Mark as RTSP stream for FPS tracking
-    this.isRtspStream = true;
-    this.rtspFrameCount = 0;
-
-    // Clear existing content
-    cameraView.innerHTML = '';
-
-    // Create canvas element for JSMpeg player
-    const canvasElement = document.createElement('canvas');
-    canvasElement.id = 'rtsp-canvas';
-    canvasElement.style.width = '100%';
-    canvasElement.style.height = '100%';
-    canvasElement.style.objectFit = 'cover';
-
-    // Add to view first so JSMpeg can access it
-    cameraView.appendChild(canvasElement);
-    this.cameraStreamElement = canvasElement;
-
-    try {
-      // Initialize JSMpeg player with WebSocket URL from node-rtsp-stream
-      this.jsmpegPlayer = new JSMpeg.Player(wsUrl, {
-        canvas: canvasElement,
-        autoplay: true,
-        audio: false,
-        // Optional callbacks
-        onSourceCompleted: () => {
-          this.logDebug('[CameraPreview] RTSP stream completed');
-        },
-        onSourceEstablished: () => {
-          this.logDebug('[CameraPreview] RTSP stream established');
-          this.updateComponentState('streaming');
-        },
-        // Track frames for FPS calculation
-        onVideoDecode: () => {
-          this.rtspFrameCount++;
-        },
-      });
-
-      this.logDebug('[CameraPreview] JSMpeg player initialized for RTSP stream');
-    } catch (error) {
-      console.error('[CameraPreview] Failed to initialize JSMpeg player:', error);
-      this.updateComponentState('error');
-    }
-  }
-
-  /**
-   * Clean up camera stream element (handles img, canvas, and JSMpeg player)
+   * Clean up video-rtc element
    */
   private cleanupCameraStream(): void {
-    // Clean up JSMpeg player if it exists
-    if (this.jsmpegPlayer) {
+    if (this.videoRtcElement) {
       try {
-        // The player is already typed as JSMpegPlayerInstance | null
-        this.jsmpegPlayer.destroy();
-        this.logDebug('[CameraPreview] JSMpeg player destroyed');
+        this.videoRtcElement.remove();
+        this.logDebug('[CameraPreview] video-rtc element removed');
       } catch (error) {
-        console.warn('[CameraPreview] Error destroying JSMpeg player:', error);
+        console.warn('[CameraPreview] Error removing video-rtc element:', error);
       }
-      this.jsmpegPlayer = null;
+      this.videoRtcElement = null;
     }
-
-    if (this.cameraStreamElement) {
-      // Remove event handlers to prevent false error events
-      if (this.cameraStreamElement instanceof HTMLImageElement) {
-        this.cameraStreamElement.onerror = null;
-        this.cameraStreamElement.onload = null;
-        this.cameraStreamElement.src = '';
-      }
-      // Canvas elements don't need special cleanup beyond JSMpeg player
-
-      this.cameraStreamElement = null;
-    }
-
-    // Reset RTSP FPS tracking state
-    this.rtspFrameCount = 0;
-    this.isRtspStream = false;
   }
 
   /**
@@ -658,7 +413,6 @@ export class CameraPreviewComponent extends BaseComponent {
     button.textContent = 'Preview On';
     cameraView.innerHTML = `<div class="no-camera">${message}</div>`;
     this.updateComponentState('error');
-    this.stopBackendHeartbeat();
     this.logDebug(`Camera error: ${message}`);
   }
 
@@ -681,170 +435,20 @@ export class CameraPreviewComponent extends BaseComponent {
   }
 
   /**
-   * Restart the MJPEG stream when a heartbeat or visibility change detects a stall
-   */
-  private async restartMjpegStream(reason: string): Promise<void> {
-    if (this.isRestartingStream || !this.previewEnabled) {
-      return;
-    }
-
-    if (!this.activeContextId) {
-      await this.initializeActiveContext();
-    }
-
-    const cameraView = this.findElement('.camera-view');
-    if (!cameraView) {
-      return;
-    }
-
-    const button = this.findElementById<HTMLButtonElement>('btn-preview');
-    const originalText = button?.textContent;
-
-    console.warn(`[CameraPreview] Restarting MJPEG stream (${reason})`);
-    this.isRestartingStream = true;
-    this.updateComponentState('loading');
-    if (button) {
-      button.textContent = 'Loading...';
-    }
-
-    try {
-      this.cleanupCameraStream();
-
-      const restored = await window.api.camera.restoreStream();
-      if (!restored) {
-        console.warn('[CameraPreview] Camera proxy was not restarted by backend');
-      }
-
-      const proxyUrl = await window.api.camera.getProxyUrl();
-      this.createMjpegStream(proxyUrl, cameraView);
-      if (button) {
-        button.textContent = 'Preview Off';
-      }
-      this.updateComponentState('streaming');
-      this.resetHeartbeatTracking();
-      this.lastBackendActivityTimestamp = Date.now();
-      this.startBackendHeartbeat();
-    } catch (error) {
-      console.error('[CameraPreview] Failed to restart MJPEG stream:', error);
-      if (button && originalText) {
-        button.textContent = originalText;
-      }
-      this.updateComponentState('error');
-    } finally {
-      this.isRestartingStream = false;
-    }
-  }
-
-  /**
-   * Start backend-driven heartbeat monitoring for MJPEG streams
-   */
-  private startBackendHeartbeat(): void {
-    if (this.backendHeartbeatIntervalId !== null || !this.previewEnabled || !this.activeContextId) {
-      return;
-    }
-
-    this.backendHeartbeatIntervalId = window.setInterval(() => {
-      void this.pollBackendHeartbeat();
-    }, this.heartbeatCheckIntervalMs);
-
-    void this.pollBackendHeartbeat();
-  }
-
-  /**
-   * Stop backend heartbeat monitoring and reset tracking state
-   */
-  private stopBackendHeartbeat(): void {
-    if (this.backendHeartbeatIntervalId !== null) {
-      window.clearInterval(this.backendHeartbeatIntervalId);
-      this.backendHeartbeatIntervalId = null;
-    }
-
-    this.resetHeartbeatTracking();
-  }
-
-  /**
-   * Reset backend heartbeat counters
-   */
-  private resetHeartbeatTracking(): void {
-    this.lastBackendBytesReceived = null;
-    this.lastBackendActivityTimestamp = null;
-    this.resetFpsTracking();
-  }
-
-  /**
-   * Poll backend statistics to determine if the MJPEG stream is stale
-   */
-  private async pollBackendHeartbeat(reason: string = 'backend-heartbeat-timeout'): Promise<void> {
-    if (
-      this.isHeartbeatPolling ||
-      !this.previewEnabled ||
-      this.isRestartingStream ||
-      this.backendHeartbeatIntervalId === null
-    ) {
-      return;
-    }
-
-    const contextId = this.activeContextId;
-    if (!contextId) {
-      return;
-    }
-
-    this.isHeartbeatPolling = true;
-
-    try {
-      const status: CameraProxyStatus | null = await window.api.camera.getStatus(contextId);
-      if (!status || !status.stats) {
-        this.resetHeartbeatTracking();
-        return;
-      }
-
-      const bytesReceived = typeof status.stats.bytesReceived === 'number' ? status.stats.bytesReceived : null;
-
-      if (bytesReceived === null) {
-        return;
-      }
-
-      if (this.lastBackendBytesReceived === null || bytesReceived > this.lastBackendBytesReceived) {
-        this.lastBackendBytesReceived = bytesReceived;
-        this.lastBackendActivityTimestamp = Date.now();
-        return;
-      }
-
-      if (!this.lastBackendActivityTimestamp) {
-        this.lastBackendActivityTimestamp = Date.now();
-        return;
-      }
-
-      const elapsed = Date.now() - this.lastBackendActivityTimestamp;
-      if (elapsed >= this.heartbeatTimeoutMs) {
-        await this.restartMjpegStream(reason);
-        this.resetHeartbeatTracking();
-      }
-    } catch (error) {
-      console.warn('[CameraPreview] Failed to poll camera status:', error);
-    } finally {
-      this.isHeartbeatPolling = false;
-    }
-  }
-
-  /**
-   * Trigger a heartbeat check when the window regains focus
+   * Handle visibility changes (tab switching)
+   * video-rtc handles reconnection internally, we just update status
    */
   private handleVisibilityChange(): void {
-    if (document.hidden || !this.previewEnabled || this.isRestartingStream) {
+    if (document.hidden || !this.previewEnabled) {
       return;
     }
 
-    if (this.backendHeartbeatIntervalId === null) {
-      return;
-    }
-
-    void this.pollBackendHeartbeat('visibility-change');
+    // When tab becomes visible, video-rtc will reconnect automatically
+    this.logDebug('[CameraPreview] Tab visible, video-rtc will handle reconnection');
   }
 
   /**
    * Update job display with current job information
-   * Handles job name display and progress updates
    */
   private updateJobDisplay(jobInfo: CurrentJobInfo | null): void {
     const currentJobElement = this.findElementById('current-job');
@@ -857,7 +461,6 @@ export class CameraPreviewComponent extends BaseComponent {
     }
 
     if (!jobInfo || !jobInfo.isActive) {
-      // No active job - clear display
       this.setElementText(currentJobElement, 'No active job');
       this.setElementText(progressPercentageElement, '0%');
       this.setElementAttribute(progressBarElement, 'value', '0');
@@ -881,7 +484,6 @@ export class CameraPreviewComponent extends BaseComponent {
 
   /**
    * Update progress bar visual state based on printer state
-   * Applies appropriate CSS classes for visual feedback
    */
   private updateProgressBarState(printerState: PrinterState): void {
     const progressBarElement = this.findElementById<HTMLProgressElement>('progress-bar');
@@ -916,7 +518,6 @@ export class CameraPreviewComponent extends BaseComponent {
         break;
 
       default:
-        // Ready, Busy, etc. - use default styling (no additional class)
         break;
     }
   }
@@ -937,7 +538,6 @@ export class CameraPreviewComponent extends BaseComponent {
 
   /**
    * Get current job information
-   * @returns Current job info or null if no active job
    */
   public getCurrentJobInfo(): CurrentJobInfo | null {
     return this.currentJobInfo;
@@ -945,7 +545,6 @@ export class CameraPreviewComponent extends BaseComponent {
 
   /**
    * Get current printer state
-   * @returns Current printer state or null if not connected
    */
   public getCurrentPrinterState(): PrinterState | null {
     return this.currentPrinterState;
@@ -953,7 +552,6 @@ export class CameraPreviewComponent extends BaseComponent {
 
   /**
    * Check if there is an active job
-   * @returns True if there is an active job being displayed
    */
   public hasActiveJob(): boolean {
     return this.currentJobInfo !== null && this.currentJobInfo.isActive;
@@ -965,10 +563,7 @@ export class CameraPreviewComponent extends BaseComponent {
   protected cleanup(): void {
     this.logDebug('Cleaning up camera preview component');
 
-    this.stopBackendHeartbeat();
     document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
-    this.isRestartingStream = false;
-    this.resetHeartbeatTracking();
 
     // Clean up camera stream
     this.cleanupCameraStream();

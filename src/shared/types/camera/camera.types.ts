@@ -1,16 +1,20 @@
 /**
- * @fileoverview Comprehensive type definitions for camera proxy system
+ * @fileoverview Comprehensive type definitions for camera streaming system
  *
- * Provides complete type safety for camera configuration, proxy server management,
+ * Provides complete type safety for camera configuration, go2rtc streaming gateway,
  * stream URL resolution, and client connection tracking. Supports both built-in printer
  * cameras (MJPEG/RTSP) and custom camera URLs with proper validation and type guards.
  *
+ * All camera types are now handled through go2rtc, which provides unified WebRTC/MSE/MJPEG
+ * fallback for browser playback. This eliminates the rotation drift bug by using native
+ * <video> element rendering instead of JSMpeg canvas rendering.
+ *
  * Key Type Groups:
- * - Configuration: CameraProxyConfig, CameraUserConfig, ResolvedCameraConfig
- * - Status & Monitoring: CameraProxyStatus, CameraProxyClient, CameraProxyEvent
+ * - Configuration: CameraUserConfig, ResolvedCameraConfig, Go2rtcCameraStreamConfig
+ * - Status & Monitoring: CameraProxyStatus, CameraProxyEvent
  * - URL Resolution: CameraUrlResolutionParams, CameraUrlBuilder, validation results
- * - Service Interfaces: ICameraProxyService, CameraIPCMethods for main/renderer bridge
- * - Protocol Support: MJPEG and RTSP stream types with default URL patterns
+ * - IPC Methods: CameraIPCMethods for main/renderer bridge
+ * - Protocol Support: MJPEG and RTSP stream types with go2rtc handling
  *
  * Camera Source Priority:
  * 1. Custom camera URL (if enabled in user config)
@@ -177,29 +181,6 @@ export interface CameraProxyEvent {
 }
 
 /**
- * Camera service interface for main process
- */
-export interface ICameraProxyService {
-  /** Initialize the camera proxy service */
-  initialize(config: CameraProxyConfig): Promise<void>;
-
-  /** Set the camera stream URL */
-  setStreamUrl(url: string | null): void;
-
-  /** Get current proxy status */
-  getStatus(): CameraProxyStatus;
-
-  /** Start the proxy server */
-  start(): Promise<void>;
-
-  /** Stop the proxy server */
-  stop(): Promise<void>;
-
-  /** Shutdown the service and cleanup */
-  shutdown(): Promise<void>;
-}
-
-/**
  * Camera IPC methods exposed to renderer
  */
 export interface CameraIPCMethods {
@@ -228,6 +209,27 @@ export const DEFAULT_CAMERA_PATTERNS = {
   /** Default MJPEG stream pattern for FlashForge printers */
   FLASHFORGE_MJPEG: (ip: string) => `http://${ip}:8080/?action=stream`,
 } as const;
+
+/**
+ * go2rtc stream configuration for UI consumption.
+ * This is returned by the camera:get-stream-config IPC handler.
+ */
+export interface Go2rtcCameraStreamConfig {
+  /** WebSocket URL for stream negotiation (e.g., ws://localhost:1984/api/ws?src=printer_1) */
+  readonly wsUrl: string;
+  /** Original source type */
+  readonly sourceType: CameraSourceType;
+  /** Original stream type (before go2rtc conversion) */
+  readonly streamType: CameraStreamType;
+  /** Preferred playback modes (comma-separated: 'webrtc,mse,mjpeg') */
+  readonly mode: string;
+  /** Whether stream is available */
+  readonly isAvailable: boolean;
+  /** Stream name in go2rtc */
+  readonly streamName: string;
+  /** API port for additional endpoints */
+  readonly apiPort: number;
+}
 
 /**
  * Camera validation result

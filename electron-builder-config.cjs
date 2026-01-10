@@ -134,6 +134,15 @@ module.exports = {
                 arch: ["x64"],
             },
         ],
+
+        // Bundle go2rtc binary for Windows x64
+        extraResources: [
+            {
+                from: "resources/bin/win32-x64",
+                to: "bin/win32-x64",
+                filter: ["go2rtc.exe"]
+            }
+        ],
     },
 
 
@@ -160,7 +169,21 @@ module.exports = {
         // This triggers the system permission dialog when the app attempts to discover/connect to printers
         extendInfo: {
             NSLocalNetworkUsageDescription: "FlashForgeUI requires access to your local network to discover and communicate with FlashForge 3D printers on your network."
-        }
+        },
+
+        // Bundle go2rtc binaries for macOS (both arm64 and x64 for universal builds)
+        extraResources: [
+            {
+                from: "resources/bin/darwin-arm64",
+                to: "bin/darwin-arm64",
+                filter: ["go2rtc"]
+            },
+            {
+                from: "resources/bin/darwin-x64",
+                to: "bin/darwin-x64",
+                filter: ["go2rtc"]
+            }
+        ],
     },
 
     // Linux configuration
@@ -183,6 +206,20 @@ module.exports = {
         ],
         maintainer: "GhostTypes",
         vendor: "GhostTypes",
+
+        // Bundle go2rtc binaries for Linux (x64 and arm64 for RPM)
+        extraResources: [
+            {
+                from: "resources/bin/linux-x64",
+                to: "bin/linux-x64",
+                filter: ["go2rtc"]
+            },
+            {
+                from: "resources/bin/linux-arm64",
+                to: "bin/linux-arm64",
+                filter: ["go2rtc"]
+            }
+        ],
     },
 
     // NSIS Windows installer configuration (EXACT same as JS project)

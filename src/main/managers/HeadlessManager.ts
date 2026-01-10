@@ -12,6 +12,7 @@ import type { PrinterClientType, PrinterDetails } from '@shared/types/printer.js
 import { applyPerPrinterDefaults } from '@shared/utils/printerSettingsDefaults.js';
 import { EventEmitter } from 'events';
 import { cameraIPCHandler } from '../ipc/camera-ipc-handler.js';
+import { getGo2rtcService } from '../services/Go2rtcService.js';
 import { getMultiContextPollingCoordinator } from '../services/MultiContextPollingCoordinator.js';
 import { getSavedPrinterService } from '../services/SavedPrinterService.js';
 import type { HeadlessConfig, PrinterSpec } from '../utils/HeadlessArguments.js';
@@ -35,6 +36,7 @@ export class HeadlessManager extends EventEmitter {
   private readonly webUIManager = getWebUIManager();
   private readonly pollingCoordinator = getMultiContextPollingCoordinator();
   private readonly savedPrinterService = getSavedPrinterService();
+  private readonly go2rtcService = getGo2rtcService();
 
   private connectedContexts: string[] = [];
   private isInitialized = false;
@@ -79,8 +81,8 @@ export class HeadlessManager extends EventEmitter {
       // Start polling for all connected contexts
       this.startPolling();
 
-      // Initialize camera proxies for all connected contexts
-      await this.initializeCameraProxies();
+      // Initialize camera streams for all connected contexts via go2rtc
+      await this.initializeCameraStreams();
 
       // Log polling status
       this.logger.logPollingStatus(3, 3);
@@ -308,15 +310,15 @@ export class HeadlessManager extends EventEmitter {
   }
 
   /**
-   * Initialize camera proxies for all connected contexts
+   * Initialize camera streams for all connected contexts via go2rtc
    */
-  private async initializeCameraProxies(): Promise<void> {
+  private async initializeCameraStreams(): Promise<void> {
     for (const contextId of this.connectedContexts) {
       try {
         await cameraIPCHandler.handlePrinterConnected(contextId);
-        this.logger.logInfo(`Camera proxy initialized for context: ${contextId}`);
+        this.logger.logInfo(`Camera stream initialized for context: ${contextId}`);
       } catch (error) {
-        this.logger.logError(`Failed to initialize camera for context ${contextId}`, error as Error);
+        this.logger.logError(`Failed to initialize camera stream for context ${contextId}`, error as Error);
       }
     }
   }
@@ -357,6 +359,14 @@ export class HeadlessManager extends EventEmitter {
         } catch (error) {
           this.logger.logError(`Error disconnecting context ${contextId}`, error as Error);
         }
+      }
+
+      // Stop go2rtc camera streaming service
+      try {
+        await this.go2rtcService.shutdown();
+        this.logger.logInfo('go2rtc service stopped');
+      } catch (error) {
+        this.logger.logError('Error stopping go2rtc service', error as Error);
       }
 
       // Stop WebUI

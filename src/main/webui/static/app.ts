@@ -160,13 +160,20 @@ export interface PrinterFeaturesResponse extends ApiResponse {
 }
 
 export interface CameraProxyConfigResponse extends ApiResponse {
+  /** go2rtc WebSocket URL for stream negotiation */
+  wsUrl?: string;
+  /** Original stream type (before go2rtc conversion) */
   streamType?: 'mjpeg' | 'rtsp';
-  port?: number; // For MJPEG camera proxy
-  wsPort?: number; // For RTSP WebSocket port
-  url?: string;
-  wsPath?: string;
-  ffmpegAvailable?: boolean;
-  showCameraFps?: boolean; // Whether to show FPS overlay
+  /** Original source type */
+  sourceType?: 'builtin' | 'custom';
+  /** Stream name in go2rtc */
+  streamName?: string;
+  /** go2rtc API port */
+  apiPort?: number;
+  /** Preferred playback modes (e.g., 'webrtc,mse,mjpeg') */
+  mode?: string;
+  /** Whether to show FPS overlay */
+  showCameraFps?: boolean;
 }
 
 export interface FileListResponse extends ApiResponse {

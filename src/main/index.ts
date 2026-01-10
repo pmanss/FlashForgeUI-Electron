@@ -43,9 +43,8 @@ import { getMultiContextPrintStateMonitor } from './services/MultiContextPrintSt
 import { getMultiContextNotificationCoordinator } from './services/MultiContextNotificationCoordinator.js';
 import { getMultiContextTemperatureMonitor } from './services/MultiContextTemperatureMonitor.js';
 import { getMultiContextSpoolmanTracker } from './services/MultiContextSpoolmanTracker.js';
-import { getCameraProxyService } from './services/CameraProxyService.js';
-import { getRtspStreamService } from './services/RtspStreamService.js';
 import { cameraIPCHandler } from './ipc/camera-ipc-handler.js';
+import { getGo2rtcService } from './services/Go2rtcService.js';
 import { getWebUIManager } from './webui/server/WebUIManager.js';
 import { getEnvironmentDetectionService } from './services/EnvironmentDetectionService.js';
 import { getStaticFileManager } from './services/StaticFileManager.js';
@@ -964,11 +963,11 @@ const initializeApp = async (): Promise<void> => {
   // Initialize camera service
   await initializeCameraService();
 
-  // Initialize RTSP stream service (for RTSP camera support)
+  // Initialize go2rtc camera streaming service (unified MJPEG/RTSP handling)
   // This must be initialized unconditionally, not just when WebUI is enabled
-  const rtspStreamService = getRtspStreamService();
-  await rtspStreamService.initialize();
-  console.log('RTSP stream service initialized');
+  const go2rtcService = getGo2rtcService();
+  await go2rtcService.initialize();
+  console.log('go2rtc camera streaming service initialized');
 
   // Note: WebUI server initialization moved to non-blocking context
   // (will be initialized after renderer-ready signal to prevent startup crashes)
@@ -1041,10 +1040,10 @@ async function initializeHeadless(): Promise<void> {
     }
   });
 
-  // Initialize RTSP stream service (for RTSP camera support in headless mode)
-  const rtspStreamService = getRtspStreamService();
-  await rtspStreamService.initialize();
-  console.log('[Headless] RTSP stream service initialized');
+  // Initialize go2rtc camera streaming service (unified MJPEG/RTSP handling in headless mode)
+  const go2rtcService = getGo2rtcService();
+  await go2rtcService.initialize();
+  console.log('[Headless] go2rtc camera streaming service initialized');
 
   // Initialize Spoolman integration service
   const headlessSpoolmanService = initializeSpoolmanIntegrationService(
@@ -1334,10 +1333,10 @@ app.on('before-quit', async () => {
     await connectionManager.disconnect();
     console.log('Printer disconnected and logged out during app close');
 
-    // Shutdown camera proxy service
-    const cameraProxyService = getCameraProxyService();
-    await cameraProxyService.shutdown();
-    console.log('Camera proxy service shut down');
+    // Shutdown go2rtc camera streaming service
+    const go2rtcService = getGo2rtcService();
+    await go2rtcService.shutdown();
+    console.log('go2rtc camera streaming service shut down');
 
     // Dispose camera IPC handler
     cameraIPCHandler.dispose();

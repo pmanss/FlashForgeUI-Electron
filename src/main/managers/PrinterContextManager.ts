@@ -44,7 +44,7 @@
  * Related:
  * - PrinterBackendManager: Manages backends within contexts
  * - PrinterPollingService: Per-context polling service
- * - CameraProxyService: Per-context camera streaming
+ * - Go2rtcService: Unified camera streaming via go2rtc
  */
 
 import type {

@@ -1,32 +1,42 @@
 /**
- * @fileoverview Camera streaming helpers for the WebUI client.
+ * @fileoverview Camera streaming helpers for the WebUI client using go2rtc.
  *
- * Fetches camera proxy configuration, initializes MJPEG or RTSP (JSMpeg)
- * rendering, and provides teardown utilities so contexts can be switched
- * without stale DOM state. Keeps camera concerns isolated from the main app
- * orchestrator.
+ * Unified camera streaming using go2rtc as the streaming gateway. All camera types
+ * (MJPEG and RTSP) are handled through go2rtc, which provides WebRTC/MSE/MJPEG
+ * fallback for browser playback. This eliminates the rotation drift bug caused
+ * by JSMpeg's canvas rendering by using native <video> element playback.
+ *
+ * Key improvements:
+ * - Native <video> element (no canvas = no rotation drift)
+ * - Lower latency via WebRTC (~500ms vs 1-3s with transcoding)
+ * - Automatic reconnection built into go2rtc
+ * - Unified handling for all camera types
  */
 
-import type { JSMpegPlayerInstance, JSMpegStatic } from '../../../../shared/types/jsmpeg.d.ts';
 import type { CameraProxyConfigResponse } from '../app.js';
 import { state } from '../core/AppState.js';
 import { apiRequest } from '../core/Transport.js';
 import { $, hideElement, showElement } from '../shared/dom.js';
 
-declare const JSMpeg: JSMpegStatic;
+/**
+ * Interface for the video-rtc custom element
+ */
+interface VideoRTCElement extends HTMLElement {
+  src: string;
+  mode: string;
+  media: string;
+}
 
-let jsmpegPlayer: JSMpegPlayerInstance | null = null;
+/** Current video-rtc element instance */
+let videoRtcElement: VideoRTCElement | null = null;
 
-// FPS tracking state
+/** Whether FPS overlay is enabled */
 let showFpsOverlay = false;
-let frameCount = 0;
-let lastFpsFrameCount = 0;
-let lastFpsTimestamp = 0;
-let currentFps: number | null = null;
-let fpsUpdateIntervalId: number | null = null;
 
 /**
- * Update FPS overlay display
+ * Update FPS overlay display.
+ * Note: video-rtc doesn't expose frame counts directly like JSMpeg did.
+ * The FPS overlay will show connection status instead.
  */
 function updateFpsDisplay(): void {
   const overlay = $('camera-fps-overlay');
@@ -38,93 +48,34 @@ function updateFpsDisplay(): void {
   }
 
   overlay.classList.remove('hidden');
-  overlay.textContent = currentFps !== null ? `${currentFps} FPS` : '-- FPS';
+  // video-rtc handles playback internally, we show stream status instead
+  overlay.textContent = videoRtcElement ? 'Streaming' : 'Offline';
 }
 
 /**
- * Calculate FPS from frame count delta
+ * Destroy the current video-rtc player
  */
-function calculateFps(): void {
-  const now = Date.now();
-  const currentFrameCount = frameCount;
-
-  if (lastFpsTimestamp === 0) {
-    // First calculation - just store the baseline
-    lastFpsFrameCount = currentFrameCount;
-    lastFpsTimestamp = now;
-    return;
+function destroyVideoRtcPlayer(): void {
+  if (videoRtcElement) {
+    try {
+      // Remove from DOM
+      videoRtcElement.remove();
+    } catch (error) {
+      console.warn('[Camera] Failed to destroy video-rtc player:', error);
+    } finally {
+      videoRtcElement = null;
+    }
   }
-
-  const timeDelta = (now - lastFpsTimestamp) / 1000; // seconds
-  if (timeDelta < 0.5) return; // Wait for at least 0.5s of data
-
-  const frameDelta = currentFrameCount - lastFpsFrameCount;
-  const instantFps = Math.round(frameDelta / timeDelta);
-
-  // Light smoothing (20% new, 80% old)
-  if (currentFps === null) {
-    currentFps = instantFps;
-  } else {
-    currentFps = Math.round(instantFps * 0.2 + currentFps * 0.8);
-  }
-
-  lastFpsFrameCount = currentFrameCount;
-  lastFpsTimestamp = now;
-  updateFpsDisplay();
 }
 
 /**
- * Start FPS tracking interval
+ * Teardown all camera stream elements and reset state
  */
-function startFpsTracking(): void {
-  if (fpsUpdateIntervalId !== null) return;
-
-  frameCount = 0;
-  lastFpsFrameCount = 0;
-  lastFpsTimestamp = 0;
-  currentFps = null;
-
-  fpsUpdateIntervalId = window.setInterval(calculateFps, 1000);
-  updateFpsDisplay();
-}
-
-/**
- * Stop FPS tracking interval
- */
-function stopFpsTracking(): void {
-  if (fpsUpdateIntervalId !== null) {
-    window.clearInterval(fpsUpdateIntervalId);
-    fpsUpdateIntervalId = null;
-  }
-  currentFps = null;
-  updateFpsDisplay();
-}
-
-/**
- * Reset all FPS tracking state
- */
-function resetFpsTracking(): void {
-  stopFpsTracking();
-  frameCount = 0;
-  showFpsOverlay = false;
-}
-
-function destroyRtspPlayer(): void {
-  try {
-    jsmpegPlayer?.destroy();
-  } catch (error) {
-    console.warn('[Camera] Failed to destroy JSMpeg player:', error);
-  } finally {
-    jsmpegPlayer = null;
-  }
-}
-
 export function teardownCameraStreamElements(): void {
-  // Stop FPS tracking first
-  resetFpsTracking();
+  showFpsOverlay = false;
+  destroyVideoRtcPlayer();
 
-  destroyRtspPlayer();
-
+  // Clear any legacy elements that might still exist
   const cameraStream = $('camera-stream') as HTMLImageElement | null;
   if (cameraStream) {
     cameraStream.src = '';
@@ -146,18 +97,43 @@ export function teardownCameraStreamElements(): void {
     placeholder.textContent = 'Camera offline';
   }
   showElement('camera-placeholder');
+
+  updateFpsDisplay();
 }
 
+/**
+ * Create and configure a video-rtc element for camera streaming
+ */
+function createVideoRtcElement(wsUrl: string, mode: string): VideoRTCElement {
+  const element = document.createElement('video-rtc') as VideoRTCElement;
+
+  // Configure the element
+  element.src = wsUrl;
+  element.mode = mode;
+  element.media = 'video'; // Video only, no audio for camera feeds
+
+  // Style the element
+  element.style.width = '100%';
+  element.style.height = '100%';
+  element.style.objectFit = 'cover';
+  element.style.display = 'block';
+
+  return element;
+}
+
+/**
+ * Load and display camera stream from go2rtc
+ */
 export async function loadCameraStream(): Promise<void> {
   const cameraPlaceholder = $('camera-placeholder');
-  const cameraStream = $('camera-stream') as HTMLImageElement | null;
-  const cameraCanvas = $('camera-canvas') as HTMLCanvasElement | null;
+  const cameraContainer = $('camera-container') || $('camera-stream')?.parentElement;
 
-  if (!cameraPlaceholder || !cameraStream || !cameraCanvas) {
-    console.error('[Camera] Required DOM elements not found');
+  if (!cameraPlaceholder) {
+    console.error('[Camera] Required DOM element (camera-placeholder) not found');
     return;
   }
 
+  // Check auth
   if (state.authRequired && !state.authToken) {
     console.warn('[Camera] Skipping stream load due to missing auth token');
     teardownCameraStreamElements();
@@ -165,102 +141,61 @@ export async function loadCameraStream(): Promise<void> {
   }
 
   try {
+    // Fetch camera configuration from server
     const config = await apiRequest<CameraProxyConfigResponse>('/api/camera/proxy-config');
 
-    if (config.streamType === 'rtsp') {
-      if (config.ffmpegAvailable === false) {
-        showElement('camera-placeholder');
-        hideElement('camera-stream');
-        hideElement('camera-canvas');
-        cameraPlaceholder.textContent = 'RTSP Camera: ffmpeg required for browser viewing';
-        return;
-      }
-
-      if (!config.wsPort) {
-        throw new Error('No WebSocket port provided for RTSP stream');
-      }
-
-      destroyRtspPlayer();
-      hideElement('camera-stream');
-      showElement('camera-canvas');
-      hideElement('camera-placeholder');
-
-      // Set up FPS tracking for RTSP
-      showFpsOverlay = config.showCameraFps ?? false;
-
-      const wsUrl = `ws://${window.location.hostname}:${config.wsPort}`;
-      jsmpegPlayer = new JSMpeg.Player(wsUrl, {
-        canvas: cameraCanvas,
-        autoplay: true,
-        audio: false,
-        onSourceEstablished: () => {
-          console.log('[Camera] RTSP stream connected');
-        },
-        onSourceCompleted: () => {
-          console.log('[Camera] RTSP stream completed');
-        },
-        // Track frames for FPS calculation
-        onVideoDecode: () => {
-          frameCount++;
-        },
-      });
-
-      // Start FPS tracking if enabled
-      if (showFpsOverlay) {
-        startFpsTracking();
-      }
-      return;
+    if (!config.success) {
+      throw new Error(config.error || 'Failed to get camera configuration');
     }
 
-    if (!config.url) {
-      throw new Error('No camera URL provided by server');
+    if (!config.wsUrl) {
+      throw new Error('No WebSocket URL provided for camera stream');
     }
 
-    destroyRtspPlayer();
+    // Cleanup any existing player
+    destroyVideoRtcPlayer();
 
-    // Set up FPS tracking for MJPEG
-    showFpsOverlay = config.showCameraFps ?? false;
-
-    const cameraUrl = config.url;
-    cameraStream.src = cameraUrl;
-
-    cameraStream.onload = () => {
-      hideElement('camera-placeholder');
-      hideElement('camera-canvas');
-      showElement('camera-stream');
-
-      // Count frames on each image load for FPS calculation
-      frameCount++;
-    };
-
-    // Start FPS tracking if enabled
-    if (showFpsOverlay) {
-      startFpsTracking();
-    }
-
-    cameraStream.onerror = () => {
-      showElement('camera-placeholder');
-      hideElement('camera-stream');
-      hideElement('camera-canvas');
-      cameraPlaceholder.textContent = 'Camera Stream Error';
-
-      setTimeout(() => {
-        if (state.printerFeatures?.hasCamera) {
-          cameraStream.src = `${cameraUrl}?t=${Date.now()}`;
-        }
-      }, 5000);
-    };
-  } catch (error) {
-    console.error('[Camera] Failed to load camera proxy configuration:', error);
-    showElement('camera-placeholder');
+    // Hide legacy elements
     hideElement('camera-stream');
     hideElement('camera-canvas');
-    if (cameraPlaceholder) {
-      cameraPlaceholder.textContent = 'Camera Configuration Error';
+    hideElement('camera-placeholder');
+
+    // Set up FPS overlay (shows status for go2rtc)
+    showFpsOverlay = config.showCameraFps ?? false;
+
+    // Create video-rtc element
+    const mode = config.mode || 'webrtc,mse,mjpeg';
+    videoRtcElement = createVideoRtcElement(config.wsUrl, mode);
+
+    // Find the camera container and add the video-rtc element
+    if (cameraContainer) {
+      cameraContainer.appendChild(videoRtcElement);
+    } else {
+      // Fallback: replace placeholder's parent content
+      const parent = cameraPlaceholder.parentElement;
+      if (parent) {
+        parent.appendChild(videoRtcElement);
+      }
     }
+
+    console.log(`[Camera] go2rtc stream started: ${config.wsUrl} (mode: ${mode})`);
+    updateFpsDisplay();
+  } catch (error) {
+    console.error('[Camera] Failed to load camera stream:', error);
+
+    teardownCameraStreamElements();
+
+    if (cameraPlaceholder) {
+      const errorMessage = error instanceof Error ? error.message : 'Camera Configuration Error';
+      cameraPlaceholder.textContent = errorMessage;
+    }
+    showElement('camera-placeholder');
   }
 }
 
+/**
+ * Initialize camera module - called when printer features are available
+ */
 export function initializeCamera(): void {
   if (!state.printerFeatures?.hasCamera) {
     teardownCameraStreamElements();

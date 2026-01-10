@@ -15,7 +15,7 @@
  * - registerDialogHandlers(): Registers all dialog-related IPC handlers
  *
  * The handlers coordinate with multiple managers (ConfigManager, WindowManager, BackendManager)
- * and services (LogService, WebUIManager, CameraProxyService) to provide comprehensive dialog
+ * and services (LogService, WebUIManager, Go2rtcService) to provide comprehensive dialog
  * functionality. Supports context-aware operations for multi-printer architecture.
  */
 
@@ -26,7 +26,7 @@ import type { ConfigManager } from '../../managers/ConfigManager.js';
 import { getPrinterConnectionManager } from '../../managers/ConnectionFlowManager.js';
 import { getPrinterBackendManager } from '../../managers/PrinterBackendManager.js';
 import { getPrinterContextManager } from '../../managers/PrinterContextManager.js';
-import { getCameraProxyService } from '../../services/CameraProxyService.js';
+import { getGo2rtcService } from '../../services/Go2rtcService.js';
 import { getLogService } from '../../services/LogService.js';
 import { getModelDisplayName } from '../../utils/PrinterUtils.js';
 import { getRoundedUISupportInfo } from '../../utils/RoundedUICompatibility.js';
@@ -341,9 +341,9 @@ export function registerDialogHandlers(configManager: ConfigManager, windowManag
       const webUIManager = getWebUIManager();
       const webUIStatus = webUIManager.getStatus();
 
-      // Get camera proxy status
-      const cameraProxyService = getCameraProxyService();
-      const cameraStatus = cameraProxyService.getStatus();
+      // Get go2rtc camera service status
+      const go2rtcService = getGo2rtcService();
+      const serviceStatus = go2rtcService.getServiceStatus();
 
       // Get network interfaces for WebUI URL
       const networkInterfaces = os.networkInterfaces();
@@ -366,11 +366,11 @@ export function registerDialogHandlers(configManager: ConfigManager, windowManag
         webuiStatus: webUIStatus.isRunning,
         webuiClients: webUIStatus.clientCount,
         webuiUrl: webUIStatus.isRunning ? `http://${localIP}:${webUIStatus.port}` : 'None',
-        cameraStatus: cameraStatus.isRunning,
-        cameraPort: cameraStatus.port,
-        cameraClients: cameraStatus.clientCount,
-        cameraStreaming: cameraStatus.isStreaming,
-        cameraUrl: cameraStatus.isStreaming ? `http://${localIP}:${cameraStatus.port}/camera` : 'None',
+        cameraStatus: serviceStatus.isRunning,
+        cameraPort: serviceStatus.apiPort,
+        cameraClients: serviceStatus.streamCount,
+        cameraStreaming: serviceStatus.streamCount > 0,
+        cameraUrl: serviceStatus.isRunning ? `http://${localIP}:${serviceStatus.apiPort}` : 'None',
         appUptime: process.uptime(),
         memoryUsage: process.memoryUsage().heapUsed,
       };
