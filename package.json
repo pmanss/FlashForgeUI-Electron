@@ -5,6 +5,7 @@
 	"description": "Monitoring and Control software for FlashForge printers",
 	"main": "out/main/index.js",
 	"scripts": {
+		"postinstall": "node scripts/download-go2rtc.cjs",
 		"start": "electron-vite preview",
 		"dev": "npm run build:webui && electron-vite dev",
 		"dev:clean": "npm run clean && npm run dev",

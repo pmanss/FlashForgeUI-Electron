@@ -454,10 +454,10 @@ body {
   position: relative;
 }
 
-.camera-panel-content .camera-stream {
+/* video-rtc element (go2rtc camera streaming) */
+.camera-panel-content video-rtc {
   width: 100%;
   height: 100%;
-  object-fit: contain;
   border-radius: 10px;
   background-color: var(--darker-bg);
 }

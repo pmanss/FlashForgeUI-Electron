@@ -729,21 +729,6 @@ function teardownCameraStreamElements(): void {
     cameraPlaceholder.classList.remove('hidden');
     cameraPlaceholder.textContent = 'Camera Unavailable';
   }
-
-  const cameraStream = $('camera-stream') as HTMLImageElement | null;
-  if (cameraStream) {
-    cameraStream.src = '';
-    cameraStream.onload = null;
-    cameraStream.onerror = null;
-  }
-
-  const cameraCanvas = $('camera-canvas') as HTMLCanvasElement | null;
-  if (cameraCanvas) {
-    const ctx = cameraCanvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, cameraCanvas.width, cameraCanvas.height);
-    }
-  }
 }
 
 async function loadThemeProfiles(): Promise<void> {

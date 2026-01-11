@@ -46,10 +46,6 @@ export interface PrinterDetails {
   // WebUI settings (per-printer overrides)
   webUIEnabled?: boolean;
 
-  // RTSP streaming settings (per-printer)
-  rtspFrameRate?: number; // 1-60 fps, default: 30
-  rtspQuality?: number; // 1-5 (1=best, 5=worst), default: 3
-
   // Camera overlay settings (per-printer)
   showCameraFps?: boolean; // Display FPS overlay on camera preview
 

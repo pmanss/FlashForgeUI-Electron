@@ -428,20 +428,6 @@ export class PrinterContextManager extends EventEmitter {
   }
 
   /**
-   * Update context camera proxy port
-   *
-   * @param contextId - Context to update
-   * @param port - Camera proxy port or null
-   */
-  public updateCameraPort(contextId: string, port: number | null): void {
-    const context = this.contexts.get(contextId);
-    if (context) {
-      context.cameraProxyPort = port;
-      context.lastActivity = new Date();
-    }
-  }
-
-  /**
    * Convert internal context to serializable info
    * Safe to send over IPC
    *

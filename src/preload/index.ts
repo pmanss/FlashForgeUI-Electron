@@ -489,27 +489,6 @@ const validReceiveChannels = [
   'theme-changed',
 ];
 
-// Expose camera URL for renderer
-try {
-  // Get camera proxy URL from IPC (this will be available after initialization)
-  ipcRenderer
-    .invoke('camera:get-proxy-url')
-    .then((url: unknown) => {
-      if (typeof url === 'string') {
-        contextBridge.exposeInMainWorld('CAMERA_URL', url);
-      }
-    })
-    .catch((error: unknown) => {
-      console.warn('Could not get camera proxy URL:', error);
-      const sessionId = 'desktop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      contextBridge.exposeInMainWorld('CAMERA_URL', `http://localhost:8181/camera?session=${sessionId}`);
-    });
-} catch (error) {
-  console.warn('Could not get camera service URL, using default:', error);
-  const sessionId = 'desktop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  contextBridge.exposeInMainWorld('CAMERA_URL', `http://localhost:8181/camera?session=${sessionId}`);
-}
-
 // Expose platform directly (no IPC needed) - available synchronously to renderer
 contextBridge.exposeInMainWorld('PLATFORM', process.platform);
 
@@ -633,7 +612,6 @@ const electronAPI: ElectronAPI = {
       'connection-state:get-state',
       'camera:get-stream-url',
       'camera:get-stream-config',
-      'camera:get-rtsp-relay-info',
       'printer-settings:get',
       'printer-settings:update',
       'printer-settings:get-printer-name',
@@ -863,6 +841,5 @@ contextBridge.exposeInMainWorld('api', electronAPI);
 declare global {
   interface Window {
     api: ElectronAPI;
-    CAMERA_URL: string;
   }
 }

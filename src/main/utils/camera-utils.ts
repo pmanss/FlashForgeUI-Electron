@@ -206,14 +206,6 @@ export function getCameraUserConfig(contextId?: string): CameraUserConfig {
 }
 
 /**
- * Format camera proxy URL for client consumption
- * @deprecated Use go2rtc WebSocket URLs instead via Go2rtcService.getStreamWsUrl()
- */
-export function formatCameraProxyUrl(port: number): string {
-  return `http://localhost:${port}/stream`;
-}
-
-/**
  * Format go2rtc WebSocket URL for stream negotiation
  * @param apiPort - go2rtc API port (default: 1984)
  * @param streamName - Stream name in go2rtc

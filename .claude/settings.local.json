@@ -110,7 +110,10 @@
       "Bash(npx @biomejs/biome check:*)",
       "Bash(npx @biomejs/biome lint:*)",
       "mcp__code-search-mcp__analyze_dependencies",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:docs.frigate.video)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "additionalDirectories": [

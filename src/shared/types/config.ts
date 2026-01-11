@@ -99,8 +99,6 @@ export interface AppConfig {
   readonly CheckForUpdatesOnLaunch: boolean;
   readonly UpdateChannel: 'stable' | 'alpha';
   readonly AutoDownloadUpdates: boolean;
-  readonly RtspFrameRate: number; // Per-printer, not saved to config.json
-  readonly RtspQuality: number; // Per-printer, not saved to config.json
   readonly SpoolmanEnabled: boolean;
   readonly SpoolmanServerUrl: string;
   readonly SpoolmanUpdateMode: 'length' | 'weight';
@@ -138,8 +136,6 @@ export interface MutableAppConfig {
   CheckForUpdatesOnLaunch: boolean;
   UpdateChannel: 'stable' | 'alpha';
   AutoDownloadUpdates: boolean;
-  RtspFrameRate: number;
-  RtspQuality: number;
   SpoolmanEnabled: boolean;
   SpoolmanServerUrl: string;
   SpoolmanUpdateMode: 'length' | 'weight';
@@ -282,8 +278,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   CheckForUpdatesOnLaunch: true,
   UpdateChannel: 'stable',
   AutoDownloadUpdates: false,
-  RtspFrameRate: 30, // Default 30 FPS
-  RtspQuality: 3, // Default quality 3
   SpoolmanEnabled: false,
   SpoolmanServerUrl: '',
   SpoolmanUpdateMode: 'weight', // Default to weight-based updates

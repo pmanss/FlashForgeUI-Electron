@@ -38,6 +38,8 @@ jspm_packages/
 # TypeScript build / cache
 *.tsbuildinfo
 lib/
+# But allow lib/ directories inside src/ (e.g., video-rtc.js)
+!src/**/lib/
 
 # Optional npm cache directory
 .npm
@@ -108,6 +110,9 @@ Thumbs.db
 
 # Electron dist
 out/
+
+# go2rtc binaries (downloaded at build time via postinstall)
+resources/bin/
 
 
 # AI Agent Files

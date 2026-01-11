@@ -103,6 +103,27 @@ export class CameraPreviewComponent extends BaseComponent {
   /** FPS/Status overlay state */
   private showFpsOverlay = false;
 
+  /** Frame timestamps for FPS calculation (sliding window) */
+  private frameTimestamps: number[] = [];
+
+  /** Current calculated FPS */
+  private currentFps = 0;
+
+  /** FPS update interval ID */
+  private fpsUpdateIntervalId: ReturnType<typeof setInterval> | null = null;
+
+  /** requestVideoFrameCallback ID for cleanup */
+  private videoFrameCallbackId: number | null = null;
+
+  /** MutationObserver for MJPEG poster changes */
+  private posterObserver: MutationObserver | null = null;
+
+  /** Disposer for config update listener */
+  private configUpdateDisposer: (() => void) | null = null;
+
+  /** Current stream type for FPS tracking mode selection */
+  private currentStreamType: 'mjpeg' | 'rtsp' | null = null;
+
   private logDebug(message: string, ...args: unknown[]): void {
     logVerbose(CAMERA_PREVIEW_LOG_NAMESPACE, message, ...args);
   }
@@ -131,10 +152,169 @@ export class CameraPreviewComponent extends BaseComponent {
     const shouldShow = this.showFpsOverlay && this.previewEnabled && this.currentState === 'streaming';
     if (shouldShow) {
       fpsOverlay.removeAttribute('hidden');
-      fpsOverlay.textContent = 'Streaming';
+      this.updateFpsDisplay();
     } else {
       fpsOverlay.setAttribute('hidden', '');
     }
+  }
+
+  /**
+   * Update the FPS display with current calculated FPS
+   */
+  private updateFpsDisplay(): void {
+    const fpsOverlay = this.findElementById('fps-overlay');
+    if (!fpsOverlay || fpsOverlay.hasAttribute('hidden')) return;
+
+    if (this.currentFps > 0) {
+      fpsOverlay.textContent = `${this.currentFps} FPS`;
+    } else {
+      fpsOverlay.textContent = 'Connecting...';
+    }
+  }
+
+  /**
+   * Record a frame timestamp for FPS calculation
+   * Uses a 1-second sliding window
+   */
+  private recordFrame(): void {
+    const now = performance.now();
+    this.frameTimestamps.push(now);
+
+    // Keep only frames from the last second
+    const oneSecondAgo = now - 1000;
+    this.frameTimestamps = this.frameTimestamps.filter((t) => t > oneSecondAgo);
+  }
+
+  /**
+   * Calculate FPS from frame timestamps
+   */
+  private calculateFps(): number {
+    if (this.frameTimestamps.length < 2) return 0;
+
+    const now = performance.now();
+    const oneSecondAgo = now - 1000;
+    const recentFrames = this.frameTimestamps.filter((t) => t > oneSecondAgo);
+
+    return recentFrames.length;
+  }
+
+  /**
+   * Start FPS tracking for video element
+   */
+  private startFpsTracking(): void {
+    this.stopFpsTracking();
+    this.frameTimestamps = [];
+    this.currentFps = 0;
+
+    // Start periodic FPS display update
+    this.fpsUpdateIntervalId = setInterval(() => {
+      this.currentFps = this.calculateFps();
+      this.updateFpsDisplay();
+    }, 500);
+
+    // Try to find the internal video element from video-rtc
+    const videoRtc = this.videoRtcElement;
+    if (!videoRtc) return;
+
+    // Wait a bit for video-rtc to create its internal video element
+    setTimeout(() => {
+      const video = videoRtc.querySelector('video');
+      if (video) {
+        this.setupVideoFrameCallback(video);
+      } else {
+        // Fallback: set up observer to detect when video is added
+        this.setupVideoElementObserver(videoRtc);
+      }
+    }, 100);
+  }
+
+  /**
+   * Set up frame tracking based on stream type
+   * - MJPEG: Use poster observation (video-rtc updates poster attribute)
+   * - RTSP/WebRTC: Use requestVideoFrameCallback for accurate frame counting
+   */
+  private setupVideoFrameCallback(video: HTMLVideoElement): void {
+    // For MJPEG streams, always use poster observation since video-rtc
+    // updates the poster attribute rather than playing actual video frames
+    if (this.currentStreamType === 'mjpeg') {
+      this.setupPosterObserver(video);
+      return;
+    }
+
+    // For RTSP/WebRTC streams, use requestVideoFrameCallback if available
+    if ('requestVideoFrameCallback' in video) {
+      const trackFrame = (): void => {
+        this.recordFrame();
+        // Continue tracking if still streaming
+        if (this.previewEnabled && this.currentState === 'streaming') {
+          this.videoFrameCallbackId = video.requestVideoFrameCallback(trackFrame);
+        }
+      };
+      this.videoFrameCallbackId = video.requestVideoFrameCallback(trackFrame);
+      this.logDebug('[FPS] Using requestVideoFrameCallback for frame tracking');
+    } else {
+      // Fallback: use poster observation
+      this.setupPosterObserver(video);
+    }
+  }
+
+  /**
+   * Set up MutationObserver to detect video element creation
+   */
+  private setupVideoElementObserver(parent: HTMLElement): void {
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLVideoElement) {
+            observer.disconnect();
+            this.setupVideoFrameCallback(node);
+            return;
+          }
+        }
+      }
+    });
+    observer.observe(parent, { childList: true, subtree: true });
+
+    // Clean up observer after 5 seconds if video never appears
+    setTimeout(() => observer.disconnect(), 5000);
+  }
+
+  /**
+   * Set up MutationObserver for MJPEG poster changes
+   * Used when requestVideoFrameCallback is not available (MJPEG mode)
+   */
+  private setupPosterObserver(video: HTMLVideoElement): void {
+    this.posterObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'poster') {
+          this.recordFrame();
+        }
+      }
+    });
+    this.posterObserver.observe(video, { attributes: true, attributeFilter: ['poster'] });
+    this.logDebug('[FPS] Using MutationObserver for MJPEG frame tracking');
+  }
+
+  /**
+   * Stop FPS tracking and clean up resources
+   */
+  private stopFpsTracking(): void {
+    if (this.fpsUpdateIntervalId !== null) {
+      clearInterval(this.fpsUpdateIntervalId);
+      this.fpsUpdateIntervalId = null;
+    }
+
+    // Note: We can't cancel requestVideoFrameCallback, but it will stop
+    // when the condition check fails (previewEnabled = false)
+    this.videoFrameCallbackId = null;
+
+    if (this.posterObserver) {
+      this.posterObserver.disconnect();
+      this.posterObserver = null;
+    }
+
+    this.frameTimestamps = [];
+    this.currentFps = 0;
   }
 
   constructor(parentElement: HTMLElement) {
@@ -153,7 +333,7 @@ export class CameraPreviewComponent extends BaseComponent {
     document.addEventListener('visibilitychange', this.visibilityChangeHandler);
 
     // Listen for config updates to reload FPS overlay setting
-    window.api.config.onUpdated(() => {
+    this.configUpdateDisposer = window.api.config.onUpdated(() => {
       void this.loadFpsOverlaySetting();
     });
   }
@@ -335,12 +515,20 @@ export class CameraPreviewComponent extends BaseComponent {
 
     this.logDebug(`[CameraPreview] Stream config:`, streamConfig);
 
+    // Store stream type for FPS tracking mode selection
+    this.currentStreamType = streamConfig.streamType;
+
     // Create video-rtc element for unified streaming
     this.createVideoRtcStream(streamConfig.wsUrl, streamConfig.mode, cameraView);
 
     // Update button state
     button.textContent = 'Preview Off';
     this.updateComponentState('streaming');
+
+    // Start FPS tracking if enabled
+    if (this.showFpsOverlay) {
+      this.startFpsTracking();
+    }
   }
 
   /**
@@ -394,6 +582,9 @@ export class CameraPreviewComponent extends BaseComponent {
    * Clean up video-rtc element
    */
   private cleanupCameraStream(): void {
+    // Stop FPS tracking first
+    this.stopFpsTracking();
+
     if (this.videoRtcElement) {
       try {
         this.videoRtcElement.remove();
@@ -565,12 +756,20 @@ export class CameraPreviewComponent extends BaseComponent {
 
     document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
 
+    // Clean up IPC listeners
+    if (this.configUpdateDisposer) {
+      this.configUpdateDisposer();
+      this.configUpdateDisposer = null;
+    }
+    window.api.removeListener('printer-context-switched');
+
     // Clean up camera stream
     this.cleanupCameraStream();
 
     // Reset camera state
     this.previewEnabled = false;
     this.currentState = 'disabled';
+    this.currentStreamType = null;
 
     // Reset job info state
     this.currentJobInfo = null;

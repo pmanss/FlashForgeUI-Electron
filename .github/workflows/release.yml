@@ -48,6 +48,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Download go2rtc binaries
+        shell: bash
+        run: |
+          echo "Downloading go2rtc binaries for all platforms..."
+          node scripts/download-go2rtc.cjs
+          echo "go2rtc binaries ready for bundling"
+
       - name: Set Application Version
         shell: bash
         run: |

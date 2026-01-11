@@ -100,8 +100,6 @@ const INPUT_TO_CONFIG_MAP: Record<string, keyof AppConfig> = {
   'discord-update-interval': 'DiscordUpdateIntervalMinutes',
   'rounded-ui': 'RoundedUI',
   'hide-scrollbars': 'HideScrollbars',
-  'rtsp-frame-rate': 'RtspFrameRate',
-  'rtsp-quality': 'RtspQuality',
   'check-updates-on-launch': 'CheckForUpdatesOnLaunch',
   'update-channel': 'UpdateChannel',
   'auto-download-updates': 'AutoDownloadUpdates',
@@ -414,20 +412,6 @@ class SettingsRenderer {
           return;
         }
       }
-      // Validate RTSP frame rate
-      if (configKey === 'RtspFrameRate') {
-        if (value < 1 || value > 60) {
-          this.showSaveStatus('Frame rate must be between 1-60 FPS', true);
-          return;
-        }
-      }
-      // Validate RTSP quality
-      if (configKey === 'RtspQuality') {
-        if (value < 1 || value > 5) {
-          this.showSaveStatus('Quality must be between 1-5', true);
-          return;
-        }
-      }
     } else {
       value = input.value;
       if (configKey === 'UpdateChannel' && typeof value === 'string') {
@@ -550,15 +534,7 @@ class SettingsRenderer {
    * Check if a config key is a per-printer setting
    */
   private isPerPrinterSetting(configKey: keyof AppConfig): boolean {
-    return [
-      'CustomCamera',
-      'CustomCameraUrl',
-      'CustomLeds',
-      'ForceLegacyAPI',
-      'RtspFrameRate',
-      'RtspQuality',
-      'ShowCameraFPS',
-    ].includes(configKey);
+    return ['CustomCamera', 'CustomCameraUrl', 'CustomLeds', 'ForceLegacyAPI', 'ShowCameraFPS'].includes(configKey);
   }
 
   /**
@@ -570,8 +546,6 @@ class SettingsRenderer {
       CustomCameraUrl: 'customCameraUrl',
       CustomLeds: 'customLedsEnabled',
       ForceLegacyAPI: 'forceLegacyMode',
-      RtspFrameRate: 'rtspFrameRate',
-      RtspQuality: 'rtspQuality',
       ShowCameraFPS: 'showCameraFps',
     };
     return map[configKey] || configKey;

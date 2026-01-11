@@ -39,15 +39,11 @@ export class InputDependencySection {
       this.setInputEnabled('custom-camera-url', customCameraEnabled);
       this.setInputEnabled('custom-leds', true);
       this.setInputEnabled('force-legacy-api', true);
-      this.setInputEnabled('rtsp-frame-rate', true);
-      this.setInputEnabled('rtsp-quality', true);
     } else {
       this.setInputEnabled('custom-camera', false);
       this.setInputEnabled('custom-camera-url', false);
       this.setInputEnabled('custom-leds', false);
       this.setInputEnabled('force-legacy-api', false);
-      this.setInputEnabled('rtsp-frame-rate', false);
-      this.setInputEnabled('rtsp-quality', false);
     }
 
     if (this.webUIEnabledToggle) {

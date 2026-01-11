@@ -75,23 +75,6 @@ export function teardownCameraStreamElements(): void {
   showFpsOverlay = false;
   destroyVideoRtcPlayer();
 
-  // Clear any legacy elements that might still exist
-  const cameraStream = $('camera-stream') as HTMLImageElement | null;
-  if (cameraStream) {
-    cameraStream.src = '';
-    cameraStream.removeAttribute('src');
-    hideElement('camera-stream');
-  }
-
-  const canvas = $('camera-canvas') as HTMLCanvasElement | null;
-  if (canvas) {
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.clearRect(0, 0, canvas.width, canvas.height);
-    }
-    hideElement('camera-canvas');
-  }
-
   const placeholder = $('camera-placeholder');
   if (placeholder) {
     placeholder.textContent = 'Camera offline';
@@ -155,9 +138,7 @@ export async function loadCameraStream(): Promise<void> {
     // Cleanup any existing player
     destroyVideoRtcPlayer();
 
-    // Hide legacy elements
-    hideElement('camera-stream');
-    hideElement('camera-canvas');
+    // Hide placeholder while streaming
     hideElement('camera-placeholder');
 
     // Set up FPS overlay (shows status for go2rtc)

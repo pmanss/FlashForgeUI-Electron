@@ -36,7 +36,6 @@ import type { PrinterDetails } from '../types/printer.js';
  * These defaults match the expected behavior:
  * - Camera/LED features disabled by default
  * - WebUI enabled by default (matches WebUIManager fallback)
- * - RTSP settings tuned for balanced quality/performance
  * - FPS overlay disabled by default
  */
 export const PER_PRINTER_SETTINGS_DEFAULTS = {
@@ -45,8 +44,6 @@ export const PER_PRINTER_SETTINGS_DEFAULTS = {
   customLedsEnabled: false,
   forceLegacyMode: false,
   webUIEnabled: true,
-  rtspFrameRate: 30,
-  rtspQuality: 3,
   showCameraFps: false,
 } as const;
 
@@ -60,8 +57,6 @@ export interface PerPrinterSettings {
   customLedsEnabled: boolean;
   forceLegacyMode: boolean;
   webUIEnabled: boolean;
-  rtspFrameRate: number;
-  rtspQuality: number;
   showCameraFps: boolean;
 }
 
@@ -87,8 +82,6 @@ export function applyPerPrinterDefaults<T extends Partial<PrinterDetails>>(detai
     customLedsEnabled: details.customLedsEnabled ?? PER_PRINTER_SETTINGS_DEFAULTS.customLedsEnabled,
     forceLegacyMode: details.forceLegacyMode ?? PER_PRINTER_SETTINGS_DEFAULTS.forceLegacyMode,
     webUIEnabled: details.webUIEnabled ?? PER_PRINTER_SETTINGS_DEFAULTS.webUIEnabled,
-    rtspFrameRate: details.rtspFrameRate ?? PER_PRINTER_SETTINGS_DEFAULTS.rtspFrameRate,
-    rtspQuality: details.rtspQuality ?? PER_PRINTER_SETTINGS_DEFAULTS.rtspQuality,
     showCameraFps: details.showCameraFps ?? PER_PRINTER_SETTINGS_DEFAULTS.showCameraFps,
   } as T & PerPrinterSettings;
 }
@@ -115,8 +108,6 @@ export function hasMissingDefaults(details: Partial<PrinterDetails>): boolean {
     details.customLedsEnabled === undefined ||
     details.forceLegacyMode === undefined ||
     details.webUIEnabled === undefined ||
-    details.rtspFrameRate === undefined ||
-    details.rtspQuality === undefined ||
     details.showCameraFps === undefined
   );
 }

@@ -19,12 +19,6 @@ export interface PrinterSettings {
   customLedsEnabled?: boolean;
   forceLegacyMode?: boolean;
   webUIEnabled?: boolean;
-
-  // RTSP configuration
-  rtspFrameRate?: number;
-  rtspQuality?: number;
-
-  // Camera overlay
   showCameraFps?: boolean;
 }
 
@@ -58,8 +52,6 @@ export function initializePrinterSettingsHandlers(): void {
         customLedsEnabled: details.customLedsEnabled ?? PER_PRINTER_SETTINGS_DEFAULTS.customLedsEnabled,
         forceLegacyMode: details.forceLegacyMode ?? PER_PRINTER_SETTINGS_DEFAULTS.forceLegacyMode,
         webUIEnabled: details.webUIEnabled ?? PER_PRINTER_SETTINGS_DEFAULTS.webUIEnabled,
-        rtspFrameRate: details.rtspFrameRate ?? PER_PRINTER_SETTINGS_DEFAULTS.rtspFrameRate,
-        rtspQuality: details.rtspQuality ?? PER_PRINTER_SETTINGS_DEFAULTS.rtspQuality,
         showCameraFps: details.showCameraFps ?? PER_PRINTER_SETTINGS_DEFAULTS.showCameraFps,
       };
 
@@ -95,8 +87,6 @@ export function initializePrinterSettingsHandlers(): void {
         customLedsEnabled: settings.customLedsEnabled ?? PER_PRINTER_SETTINGS_DEFAULTS.customLedsEnabled,
         forceLegacyMode: settings.forceLegacyMode ?? PER_PRINTER_SETTINGS_DEFAULTS.forceLegacyMode,
         webUIEnabled: settings.webUIEnabled ?? PER_PRINTER_SETTINGS_DEFAULTS.webUIEnabled,
-        rtspFrameRate: settings.rtspFrameRate ?? PER_PRINTER_SETTINGS_DEFAULTS.rtspFrameRate,
-        rtspQuality: settings.rtspQuality ?? PER_PRINTER_SETTINGS_DEFAULTS.rtspQuality,
         showCameraFps: settings.showCameraFps ?? PER_PRINTER_SETTINGS_DEFAULTS.showCameraFps,
       };
 

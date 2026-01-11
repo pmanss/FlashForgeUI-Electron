@@ -164,8 +164,6 @@ export class HeadlessManager extends EventEmitter {
       customLedsEnabled: lastUsedPrinter.customLedsEnabled,
       forceLegacyMode: lastUsedPrinter.forceLegacyMode,
       webUIEnabled: lastUsedPrinter.webUIEnabled,
-      rtspFrameRate: lastUsedPrinter.rtspFrameRate,
-      rtspQuality: lastUsedPrinter.rtspQuality,
       showCameraFps: lastUsedPrinter.showCameraFps,
     });
 
@@ -204,8 +202,6 @@ export class HeadlessManager extends EventEmitter {
         customLedsEnabled: saved.customLedsEnabled,
         forceLegacyMode: saved.forceLegacyMode,
         webUIEnabled: saved.webUIEnabled,
-        rtspFrameRate: saved.rtspFrameRate,
-        rtspQuality: saved.rtspQuality,
         showCameraFps: saved.showCameraFps,
       })
     );

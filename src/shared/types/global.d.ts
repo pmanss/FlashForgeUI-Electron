@@ -18,7 +18,7 @@
  *
  * Window Extensions:
  * - window.api: Main ElectronAPI interface
- * - window.CAMERA_URL: Camera stream URL constant
+ * - window.PLATFORM: Operating system platform identifier
  * - window.windowControls: Window management (sub-windows only)
  * - window.logMessage: Debug logging helper
  *
@@ -244,7 +244,6 @@ declare global {
   interface Window {
     api: ElectronAPI;
     componentDialogAPI?: ComponentDialogAPI;
-    CAMERA_URL: string;
     PLATFORM: string;
     windowControls?: WindowControls;
     logMessage?: (message: string) => void;

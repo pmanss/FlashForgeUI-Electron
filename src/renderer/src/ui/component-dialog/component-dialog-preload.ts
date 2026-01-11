@@ -318,7 +318,6 @@ const validInvokeChannels = [
   'connection-state:is-connected',
   'connection-state:get-state',
   'camera:get-stream-url',
-  'camera:get-rtsp-relay-info',
   'printer-settings:get',
   'printer-settings:update',
   'printer-settings:get-printer-name',

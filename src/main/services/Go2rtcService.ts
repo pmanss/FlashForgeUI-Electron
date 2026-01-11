@@ -259,11 +259,16 @@ export class Go2rtcService extends EventEmitter {
     const apiPort = this.binaryManager.getApiPort();
     const wsUrl = `ws://localhost:${apiPort}/api/ws?src=${encodeURIComponent(stream.streamName)}`;
 
+    // Determine playback mode based on stream type:
+    // - MJPEG: Use mjpeg mode directly (go2rtc can't transcode JPEG to H264 without ffmpeg)
+    // - RTSP: Try WebRTC/MSE first (typically H264), fall back to mjpeg
+    const mode = stream.streamType === 'mjpeg' ? 'mjpeg' : 'webrtc,mse,mjpeg';
+
     return {
       wsUrl,
       sourceType: stream.sourceType,
       streamType: stream.streamType,
-      mode: 'webrtc,mse,mjpeg',
+      mode,
       isAvailable: this.isRunning(),
       streamName: stream.streamName,
       apiPort

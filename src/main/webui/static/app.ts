@@ -4,7 +4,7 @@
  * Provides comprehensive browser interface for remote FlashForge printer control including
  * authentication with token persistence, real-time WebSocket communication for status updates,
  * printer control operations (temperature, job management, LED, filtration), multi-printer
- * context switching, camera stream viewing (MJPEG and RTSP with JSMpeg), file selection dialogs,
+ * context switching, camera stream viewing via go2rtc (WebRTC/MSE/MJPEG), file selection dialogs,
  * and responsive UI updates. Implements automatic reconnection logic, keep-alive ping mechanisms,
  * and graceful degradation when features are unavailable. All communication uses type-safe
  * interfaces with proper error handling and user feedback via toast notifications.
@@ -14,7 +14,7 @@
  * - WebSocket: Real-time status updates, command execution, automatic reconnection
  * - Printer control: Temperature set/off, job pause/resume/cancel, home axes, LED control
  * - Multi-printer: Context switching with dynamic UI updates and feature detection
- * - Camera: MJPEG proxy streaming and RTSP streaming via JSMpeg with WebSocket
+ * - Camera: Unified streaming via go2rtc with WebRTC/MSE/MJPEG fallback using video-rtc element
  * - File management: Recent/local file browsing, file selection dialogs, job start with options
  * - Material matching: AD5X multi-color job mapping to material station slots prior to start
  * - UI updates: Real-time temperature, progress, layer info, ETA, lifetime statistics, thumbnails
