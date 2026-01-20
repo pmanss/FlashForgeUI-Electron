@@ -115,7 +115,8 @@
       "WebFetch(domain:docs.frigate.video)",
       "Bash(git check-ignore:*)",
       "Skill(get-time)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Skill(typescript-best-practices)"
     ],
     "deny": [],
     "additionalDirectories": [
