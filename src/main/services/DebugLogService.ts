@@ -119,9 +119,7 @@ export class DebugLogService {
     // updateEnabledState() handles starting/stopping sessions based on state transitions
     this.updateEnabledState();
 
-    console.log(
-      `[DebugLogService] Initialized - Debug: ${this.isEnabled}, Network: ${this.isNetworkLoggingEnabled}`
-    );
+    console.log(`[DebugLogService] Initialized - Debug: ${this.isEnabled}, Network: ${this.isNetworkLoggingEnabled}`);
   }
 
   /**
@@ -134,8 +132,7 @@ export class DebugLogService {
 
     // CLI flags override config settings (OR logic)
     this.isEnabled = config.DebugMode || this.cliDebugOverride;
-    this.isNetworkLoggingEnabled =
-      (config.DebugNetworkLogging || this.cliNetworkOverride) && this.isEnabled;
+    this.isNetworkLoggingEnabled = (config.DebugNetworkLogging || this.cliNetworkOverride) && this.isEnabled;
 
     // Handle state transitions
     if (this.isEnabled && !wasEnabled) {
@@ -321,13 +318,7 @@ export class DebugLogService {
   /**
    * Log a connection failure
    */
-  public logConnectionFailure(
-    ip: string,
-    port: number,
-    reason: string,
-    error?: Error,
-    retryCount?: number
-  ): void {
+  public logConnectionFailure(ip: string, port: number, reason: string, error?: Error, retryCount?: number): void {
     this.logNetwork('Connection', `Connection failed`, {
       ip,
       port,
@@ -663,9 +654,7 @@ export class DebugLogService {
   private listLogFiles(prefix: string): string[] {
     try {
       const files = fs.readdirSync(this.logsDir);
-      return files
-        .filter((f) => f.startsWith(prefix) && f.endsWith('.log'))
-        .sort((a, b) => b.localeCompare(a)); // Most recent first
+      return files.filter((f) => f.startsWith(prefix) && f.endsWith('.log')).sort((a, b) => b.localeCompare(a)); // Most recent first
     } catch {
       return [];
     }

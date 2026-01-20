@@ -30,7 +30,7 @@ export function registerCameraRoutes(router: Router, deps: RouteDependencies): v
         available: isAvailable,
         streaming: hasStream,
         url: isAvailable ? '/api/camera/proxy-config' : undefined,
-        clientCount: 0
+        clientCount: 0,
       };
 
       return res.json(response);
@@ -44,7 +44,7 @@ export function registerCameraRoutes(router: Router, deps: RouteDependencies): v
     try {
       const contextResult = resolveContext(req, deps, {
         requireBackendReady: true,
-        requireBackendInstance: true
+        requireBackendInstance: true,
       });
       if (!contextResult.success) {
         return sendErrorResponse<StandardAPIResponse>(res, contextResult.statusCode, contextResult.error);
@@ -59,7 +59,7 @@ export function registerCameraRoutes(router: Router, deps: RouteDependencies): v
       const cameraConfig = resolveCameraConfig({
         printerIpAddress: context.printerDetails.IPAddress,
         printerFeatures: backendStatus.features,
-        userConfig: getCameraUserConfig(contextId)
+        userConfig: getCameraUserConfig(contextId),
       });
 
       if (!cameraConfig.isAvailable || !cameraConfig.streamUrl || !cameraConfig.streamType) {
@@ -117,7 +117,7 @@ export function registerCameraRoutes(router: Router, deps: RouteDependencies): v
         streamName: streamConfig.streamName,
         apiPort: streamConfig.apiPort,
         mode: streamConfig.mode,
-        showCameraFps
+        showCameraFps,
       };
 
       return res.json(response);

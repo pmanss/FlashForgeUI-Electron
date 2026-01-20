@@ -50,8 +50,7 @@ export function resolveVerboseLoggingFlag(): boolean {
   }
 
   // Check global flag set by main process
-  const globalFlag =
-    typeof globalThis !== 'undefined' && (globalThis as VerboseFlagContainer).FLASHFORGE_DEBUG_MODE;
+  const globalFlag = typeof globalThis !== 'undefined' && (globalThis as VerboseFlagContainer).FLASHFORGE_DEBUG_MODE;
 
   cachedVerboseFlag = globalFlag === true;
   return cachedVerboseFlag;

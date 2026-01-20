@@ -81,7 +81,8 @@ export class CameraIPCHandler {
 
     // Get service status (simplified for go2rtc)
     ipcMain.handle('camera:get-status', async (_event: IpcMainInvokeEvent, contextId?: string): Promise<unknown> => {
-      const targetContextId = typeof contextId === 'string' && contextId.length > 0 ? contextId : this.getActiveContextId();
+      const targetContextId =
+        typeof contextId === 'string' && contextId.length > 0 ? contextId : this.getActiveContextId();
       const streamConfig = this.go2rtcService.getStreamConfig(targetContextId);
       const serviceStatus = this.go2rtcService.getServiceStatus();
 
@@ -90,7 +91,7 @@ export class CameraIPCHandler {
         port: serviceStatus.webrtcPort,
         proxyUrl: streamConfig?.wsUrl ?? '',
         isStreaming: streamConfig !== null,
-        lastError: serviceStatus.lastError ?? null
+        lastError: serviceStatus.lastError ?? null,
       };
     });
 
@@ -115,7 +116,8 @@ export class CameraIPCHandler {
     ipcMain.handle(
       'camera:get-stream-config',
       async (_event: IpcMainInvokeEvent, contextId?: string): Promise<Go2rtcCameraStreamConfig | null> => {
-        const targetContextId = typeof contextId === 'string' && contextId.length > 0 ? contextId : this.getActiveContextId();
+        const targetContextId =
+          typeof contextId === 'string' && contextId.length > 0 ? contextId : this.getActiveContextId();
         this.logDebug(`[camera:get-stream-config] Getting stream config for context: ${targetContextId}`);
 
         const streamConfig = this.go2rtcService.getStreamConfig(targetContextId);
@@ -134,7 +136,7 @@ export class CameraIPCHandler {
           mode: streamConfig.mode,
           isAvailable: streamConfig.isAvailable,
           streamName: streamConfig.streamName,
-          apiPort: streamConfig.apiPort
+          apiPort: streamConfig.apiPort,
         };
       }
     );
@@ -245,7 +247,7 @@ export class CameraIPCHandler {
     return resolveCameraConfig({
       printerIpAddress,
       printerFeatures: backendStatus.features,
-      userConfig: getCameraUserConfig(contextId)
+      userConfig: getCameraUserConfig(contextId),
     });
   }
 

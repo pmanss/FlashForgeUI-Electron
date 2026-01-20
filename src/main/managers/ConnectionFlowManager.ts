@@ -710,11 +710,7 @@ export class ConnectionFlowManager extends EventEmitter {
       this.emit('connected', printerDetails);
 
       // Log successful connection for network debugging
-      debugLogService.logConnectionSuccess(
-        printerDetails.IPAddress,
-        8899,
-        printerDetails.Name
-      );
+      debugLogService.logConnectionSuccess(printerDetails.IPAddress, 8899, printerDetails.Name);
 
       // End flow tracking
       this.endFlow(flowId);

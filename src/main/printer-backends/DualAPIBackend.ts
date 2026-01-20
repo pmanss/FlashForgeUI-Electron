@@ -379,10 +379,9 @@ export abstract class DualAPIBackend extends BasePrinterBackend {
         timestamp: new Date(),
       };
     } catch (fallbackError) {
-      // eslint-disable-line @typescript-eslint/no-unused-vars
       return {
         success: false,
-        error: originalError instanceof Error ? originalError.message : String(originalError),
+        error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
         timestamp: new Date(),
         status: {
           printerState: 'error',
@@ -546,7 +545,7 @@ export abstract class DualAPIBackend extends BasePrinterBackend {
         data: 'Job paused',
         timestamp: new Date(),
       };
-    } catch (error) {
+    } catch (_error) {
       // Fallback to legacy API
       try {
         await this.legacyClient.sendRawCmd('M25');
@@ -556,10 +555,9 @@ export abstract class DualAPIBackend extends BasePrinterBackend {
           timestamp: new Date(),
         };
       } catch (fallbackError) {
-        // eslint-disable-line @typescript-eslint/no-unused-vars
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
           timestamp: new Date(),
         };
       }
@@ -582,7 +580,7 @@ export abstract class DualAPIBackend extends BasePrinterBackend {
         data: 'Job resumed',
         timestamp: new Date(),
       };
-    } catch (error) {
+    } catch (_error) {
       // Fallback to legacy API
       try {
         await this.legacyClient.sendRawCmd('M24');
@@ -592,10 +590,9 @@ export abstract class DualAPIBackend extends BasePrinterBackend {
           timestamp: new Date(),
         };
       } catch (fallbackError) {
-        // eslint-disable-line @typescript-eslint/no-unused-vars
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
           timestamp: new Date(),
         };
       }
@@ -618,7 +615,7 @@ export abstract class DualAPIBackend extends BasePrinterBackend {
         data: 'Job cancelled',
         timestamp: new Date(),
       };
-    } catch (error) {
+    } catch (_error) {
       // Fallback to legacy API
       try {
         await this.legacyClient.sendRawCmd('M26');
@@ -628,10 +625,9 @@ export abstract class DualAPIBackend extends BasePrinterBackend {
           timestamp: new Date(),
         };
       } catch (fallbackError) {
-        // eslint-disable-line @typescript-eslint/no-unused-vars
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
           timestamp: new Date(),
         };
       }

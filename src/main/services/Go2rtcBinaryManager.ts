@@ -78,7 +78,7 @@ export class Go2rtcBinaryManager {
       path: binaryPath,
       platform,
       arch,
-      exists: fs.existsSync(binaryPath)
+      exists: fs.existsSync(binaryPath),
     };
   }
 
@@ -146,17 +146,17 @@ export class Go2rtcBinaryManager {
   private async generateConfig(): Promise<string> {
     const config: Go2rtcConfig = {
       api: {
-        listen: `:${this.apiPort}`
+        listen: `:${this.apiPort}`,
       },
       webrtc: {
         listen: `:${this.webrtcPort}/tcp`,
-        ice_servers: [{ urls: ['stun:stun.l.google.com:19302'] }]
+        ice_servers: [{ urls: ['stun:stun.l.google.com:19302'] }],
       },
       streams: {},
       log: {
         format: 'text',
-        level: 'info'
-      }
+        level: 'info',
+      },
     };
 
     // Write config to app's userData directory
@@ -251,7 +251,7 @@ export class Go2rtcBinaryManager {
       // Spawn process with config file
       this.process = spawn(binaryInfo.path, ['-config', this.configPath], {
         stdio: ['ignore', 'pipe', 'pipe'],
-        windowsHide: true
+        windowsHide: true,
       });
 
       // Setup exit promise

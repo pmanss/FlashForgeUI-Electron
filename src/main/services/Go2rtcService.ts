@@ -24,7 +24,7 @@ import type {
   Go2rtcServiceEvents,
   Go2rtcServiceStatus,
   Go2rtcStreamInfo,
-  Go2rtcStreamsResponse
+  Go2rtcStreamsResponse,
 } from '../types/go2rtc.types.js';
 import { getGo2rtcBinaryManager, Go2rtcBinaryManager } from './Go2rtcBinaryManager.js';
 
@@ -182,7 +182,7 @@ export class Go2rtcService extends EventEmitter {
         sourceUrl,
         sourceType,
         streamType,
-        addedAt: Date.now()
+        addedAt: Date.now(),
       };
 
       this.streams.set(contextId, managedStream);
@@ -211,10 +211,9 @@ export class Go2rtcService extends EventEmitter {
     try {
       if (this.binaryManager.isRunning()) {
         const apiUrl = this.binaryManager.getApiUrl();
-        const response = await fetch(
-          `${apiUrl}/api/streams?name=${encodeURIComponent(stream.streamName)}`,
-          { method: 'DELETE' }
-        );
+        const response = await fetch(`${apiUrl}/api/streams?name=${encodeURIComponent(stream.streamName)}`, {
+          method: 'DELETE',
+        });
 
         if (!response.ok && response.status !== 404) {
           console.warn(`[Go2rtcService] Failed to remove stream from go2rtc: ${response.status}`);
@@ -271,7 +270,7 @@ export class Go2rtcService extends EventEmitter {
       mode,
       isAvailable: this.isRunning(),
       streamName: stream.streamName,
-      apiPort
+      apiPort,
     };
   }
 
@@ -368,7 +367,7 @@ export class Go2rtcService extends EventEmitter {
       webrtcPort: this.binaryManager.getWebRtcPort(),
       pid: this.binaryManager.getPid(),
       activeStreams: this.streams.size,
-      lastError: this.lastError ?? undefined
+      lastError: this.lastError ?? undefined,
     };
   }
 

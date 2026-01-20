@@ -48,7 +48,7 @@ const defaultLoadingState: LoadingState = {
 class MenuShortcutManager {
   private initialized = false;
   private isMac = false;
-  private enabledActions: Record<MainMenuAction, boolean> = {
+  private readonly enabledActions: Record<MainMenuAction, boolean> = {
     connect: true,
     settings: true,
     status: true,
