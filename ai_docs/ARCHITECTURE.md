@@ -244,5 +244,3 @@ For detailed information on specific systems, see:
 - **[INTEGRATIONS.md](./INTEGRATIONS.md)** - Camera streaming, Spoolman, notifications, Discord
 - **[THEME_SYSTEM.md](./THEME_SYSTEM.md)** - CSS variables, theme computation, design patterns
 - **[TOOLING.md](./TOOLING.md)** - Development tools, commands, testing constraints
-- **[typescript-best-practices.md](./typescript-best-practices.md)** - TypeScript patterns and conventions
-- **[electron-typescript-best-practices.md](./electron-typescript-best-practices.md)** - Electron-specific TypeScript patterns

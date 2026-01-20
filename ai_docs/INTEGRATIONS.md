@@ -6,28 +6,40 @@ This document covers camera streaming, Spoolman filament tracking, and notificat
 
 ## Camera & Streaming Stack
 
-- `CameraProxyService` (MJPEG) spins up an Express proxy per context on ports 8181–8191 (managed by `PortAllocator`). Keep-alive timers were moved to the shared `CameraPriority` spec—do not recycle ports manually or short-circuit the allocator.
+- `Go2rtcService` provides unified camera streaming using go2rtc as the streaming gateway. It replaces both the old MJPEG proxy and RTSP-to-WebSocket approaches with a single, consistent interface.
 
-- `RtspStreamService` enables RTSP cameras by wrapping `node-rtsp-stream` + ffmpeg, exposing WebSocket ports starting at 9000 (per context). It auto-detects ffmpeg in common OS paths; missing ffmpeg should produce warnings but never crash the app.
+- `Go2rtcBinaryManager` handles the go2rtc binary lifecycle (download, update, start/stop). The binary is stored in the userData directory and automatically managed.
 
-- Renderer-side components (`src/renderer/src/ui/components/camera-preview`) and the WebUI both expect the proxy URLs emitted by these services. Maintain parity across GUI/headless flows (see `ai_specs/CAMERA_PRIORITY_SPEC.md` for rationale).
+- `PortAllocator` manages stream port allocation (1984 for go2rtc API, WebSocket for WebRTC/MSE). Do not manually allocate or bypass the allocator.
 
-### CameraProxyService (`src/services/CameraProxyService.ts`)
+- go2rtc handles all protocol conversion internally: RTSP/MJPEG sources are converted to WebRTC, MSE, or MJPEG fallback for browser consumption. This eliminates the canvas rotation bug from JSMpeg and reduces latency to ~500ms.
 
-- Multi-context MJPEG proxies
-- Unique ports (8181-8191 via PortAllocator)
-- Keep-alive with 5s idle timeout
-- Automatic reconnection (exponential backoff)
-- Per-context Express servers
+- Renderer-side components (`src/renderer/src/ui/components/camera-preview`) and WebUI (`src/main/webui/static/features/camera.ts`) consume go2rtc streams via `video-rtc.js` (WebRTC) or native `<video>` elements.
 
-### RtspStreamService (`src/services/RtspStreamService.ts`)
+### Go2rtcService (`src/services/Go2rtcService.ts`)
 
-- RTSP-to-WebSocket via ffmpeg
-- node-rtsp-stream library
-- Cross-platform ffmpeg detection
-- Unique WebSocket ports (9000+)
-- JSMpeg player support
-- Max 10 concurrent streams
+- Unified streaming for all camera types (builtin RTSP, custom MJPEG/RTSP)
+- Protocol-agnostic: go2rtc handles RTSP → WebRTC/MSE/MJPEG conversion
+- Per-context stream management with unique stream names
+- Automatic reconnection built into go2rtc
+- No ffmpeg dependency for basic streaming (go2rtc includes native RTSP support)
+- Status monitoring and stream info API
+
+### Go2rtcBinaryManager (`src/services/Go2rtcBinaryManager.ts`)
+
+- Downloads platform-specific go2rtc binary on first use
+- Stores binary in userData/go2rtc/
+- Checks for updates on startup (optional, version-pinned by default)
+- Manages binary process lifecycle (start/stop/restart)
+- Configures go2rtc with streams from active printer contexts
+
+### Legacy Camera Services (Deprecated)
+
+The following services have been replaced by go2rtc:
+- `CameraProxyService` (MJPEG proxy) → now handled by go2rtc
+- `RtspStreamService` (node-rtsp-stream + ffmpeg) → now handled by go2rtc
+
+Do not use these legacy services for new code.
 
 ---
 
@@ -113,7 +125,8 @@ This document covers camera streaming, Spoolman filament tracking, and notificat
 ## Key File Locations
 
 **Camera, Notifications & Ports**
-- `src/main/services/CameraProxyService.ts`, `RtspStreamService.ts`, `src/main/utils/PortAllocator.ts`
+- `src/main/services/Go2rtcService.ts`, `Go2rtcBinaryManager.ts`, `src/main/utils/PortAllocator.ts`
+- `src/main/ipc/camera-ipc-handler.ts`, `src/main/webui/server/routes/camera-routes.ts`
 - `src/main/services/notifications/*`, `src/main/services/discord/DiscordNotificationService.ts`
 
 **Spoolman & Filament**

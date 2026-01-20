@@ -218,6 +218,6 @@ PrinterNotificationCoordinator
 - `src/webui/static/index.html` – add manifest links/meta.  
 - `src/webui/static/webui.css` – styles for new controls.  
 - `scripts/copy-webui-assets.js` – ensure new static assets copied.  
-- `ai_reference` updates (if new architecture notes needed).
+- `ai_docs` updates (if new architecture notes needed).
 
 Implementation can proceed once this plan is approved.

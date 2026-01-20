@@ -8,9 +8,9 @@ This document covers the inter-process communication system between main and ren
 
 - `src/main/ipc/handlers/index.ts` is the authoritative registry. Add new handlers there and ensure they are registered **before** any BrowserWindow is created.
 
-- Domain handlers: `backend-handlers.ts`, `camera-handlers.ts`, `component-dialog-handlers.ts`, `connection-handlers.ts`, `control-handlers.ts`, `dialog-handlers.ts`, `job-handlers.ts`, `material-handlers.ts`, `printer-settings-handlers.ts`, `shortcut-config-handlers.ts`, `spoolman-handlers.ts`.
+- Domain handlers: `backend-handlers.ts`, `camera-handlers.ts`, `component-dialog-handlers.ts`, `connection-handlers.ts`, `control-handlers.ts`, `dialog-handlers.ts`, `job-handlers.ts`, `material-handlers.ts`, `palette-handlers.ts`, `printer-settings-handlers.ts`, `shortcut-config-handlers.ts`, `spoolman-handlers.ts`, `theme-handlers.ts`, `update-handlers.ts`, `webui-handlers.ts`.
 
-- Supporting modules: `camera-ipc-handler.ts` (legacy camera IPC surface), `printer-context-handlers.ts` (context CRUD + switching), `WindowControlHandlers.ts` (custom title bar), and `DialogHandlers.ts` (loading overlay + connection dialogs). Keep APIs in sync with the preload's whitelist.
+- Supporting modules: `src/main/ipc/camera-ipc-handler.ts` (legacy camera IPC surface), `src/main/ipc/printer-context-handlers.ts` (context CRUD + switching), `src/main/ipc/WindowControlHandlers.ts` (custom title bar), and `src/main/ipc/DialogHandlers.ts` (loading overlay + connection dialogs). Keep APIs in sync with the preload's whitelist.
 
 - When adding IPC channels, update `src/preload/index.ts` channel allowlists plus any typed surface (`PrinterContextsAPI`, `SpoolmanAPI`, etc.). Dialog-specific handlers should route through `component-dialog-handlers.ts` unless they are part of the legacy `DialogHandlers` path.
 
@@ -37,14 +37,14 @@ Services/Managers
 
 ## Preload Scripts
 
-### Main Renderer (`src/preload.cts`)
+### Main Renderer (`src/preload/index.ts`)
 
 - ~150 send channels
 - ~70 receive channels
 - ~30 invoke channels
 - Specialized namespaces: `config`, `dialog`, `loading`, `camera`, `printerContexts`, `spoolman`
 
-### Component Dialog (`src/ui/component-dialog/component-dialog-preload.cts`)
+### Component Dialog (`src/renderer/src/ui/component-dialog/component-dialog-preload.ts`)
 
 - Mirrors main preload API
 - Adds `componentDialogAPI` for lifecycle
@@ -132,6 +132,30 @@ export function registerAllIpcHandlers(managers: AppManagers) {
 - `spoolman:get-active-spool`
 - `spoolman:test-connection`
 
+### Palette Domain (`palette-handlers.ts`)
+
+- `open-component-palette`, `close-component-palette`, `palette:close`
+- `palette:get-components` (invoke)
+- `palette:remove-component`, `palette:add-component`
+- `palette:opened`, `palette:toggle-edit-mode`
+
+### Theme Domain (`theme-handlers.ts`)
+
+- `theme-profile-operation` (profile CRUD)
+- `theme-updated` (broadcast)
+
+### Update Domain (`update-handlers.ts`)
+
+- `check-for-updates`, `download-update`, `install-update`
+- `open-installer`, `open-release-page`
+- `get-update-status`, `set-update-channel`
+
+### WebUI Domain (`webui-handlers.ts`)
+
+- `webui:start`, `webui:stop`, `webui:get-status`
+- `webui:set-password`, `webui:get-auth-status`
+- `webui:get-port`, `webui:set-port`
+
 ---
 
 ## Communication Patterns
@@ -195,5 +219,7 @@ interface ElectronAPI {
 ## Key File Locations
 
 **IPC & Windows**
-- `src/main/ipc/handlers/index.ts` + domain handlers in `src/main/ipc/handlers/*.ts`, `camera-ipc-handler.ts`, `printer-context-handlers.ts`, `WindowControlHandlers.ts`, `DialogHandlers.ts`
+- `src/main/ipc/handlers/index.ts` + domain handlers in `src/main/ipc/handlers/*.ts`
+- `src/main/ipc/camera-ipc-handler.ts`, `src/main/ipc/printer-context-handlers.ts`, `src/main/ipc/WindowControlHandlers.ts`, `src/main/ipc/DialogHandlers.ts`
 - `src/main/windows/WindowManager.ts`, `src/main/windows/WindowFactory.ts`, `src/main/windows/factories/*`, `src/main/windows/dialogs/*`
+- `src/preload/index.ts`, `src/renderer/src/ui/component-dialog/component-dialog-preload.ts`

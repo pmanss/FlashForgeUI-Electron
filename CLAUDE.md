@@ -1,6 +1,6 @@
 # FlashForgeUI-Electron Development Guide
 
-**Last Updated:** 2026-01-12 19:15 ET (America/New_York)
+**Last Updated:** 2026-01-19 21:27 ET (America/New_York)
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -22,30 +22,32 @@ The information in this file directly influences how Claude Code understands and
 
 ## Project Overview
 
-FlashForgeUI is an Electron-based desktop and headless controller for FlashForge printers. It supports multi-context printing, material station workflows, Spoolman-powered filament tracking, RTSP/MJPEG camera streaming, Discord + desktop notifications, and a fully authenticated WebUI. The app runs on Windows/macOS/Linux with both GUI and headless entry points (headless automatically boots the WebUI server).
+FlashForgeUI is an Electron-based desktop and headless controller for FlashForge printers. It supports multi-context printing, material station workflows, Spoolman-powered filament tracking, go2rtc-based camera streaming (WebRTC/MSE), Discord + desktop notifications, and a fully authenticated WebUI. The app runs on Windows/macOS/Linux with both GUI and headless entry points (headless automatically boots the WebUI server).
 
 ---
 
 ## Architecture Quick Reference
 
-For detailed architectural information, see the comprehensive reference documents in `ai_reference/`:
+For detailed architectural information, see the comprehensive reference documents in `ai_docs/`:
 
-- **[ARCHITECTURE.md](ai_reference/ARCHITECTURE.md)** - High-level system overview, bootstrap sequence, managers, services, file organization
-- **[MULTI_CONTEXT.md](ai_reference/MULTI_CONTEXT.md)** - Multi-printer context system, coordinators, polling architecture, service dependencies
-- **[IPC_COMMUNICATION.md](ai_reference/IPC_COMMUNICATION.md)** - IPC handlers, security model, communication patterns, handler registration
-- **[UI_COMPONENTS.md](ai_reference/UI_COMPONENTS.md)** - Renderer architecture, component system, settings dialog, GridStack layout
-- **[WEBUI_HEADLESS.md](ai_reference/WEBUI_HEADLESS.md)** - Headless mode, WebUI server, static client, CLI modes
-- **[INTEGRATIONS.md](ai_reference/INTEGRATIONS.md)** - Camera streaming, Spoolman, notifications, Discord, persistence
-- **[THEME_SYSTEM.md](ai_reference/THEME_SYSTEM.md)** - CSS variables, theme computation, design patterns, hardcoded CSS detection
-- **[TOOLING.md](ai_reference/TOOLING.md)** - Development tools, commands, testing constraints, code search MCP tools
+- **[ARCHITECTURE.md](ai_docs/ARCHITECTURE.md)** - High-level system overview, bootstrap sequence, managers, services, file organization
+- **[MULTI_CONTEXT.md](ai_docs/MULTI_CONTEXT.md)** - Multi-printer context system, coordinators, polling architecture, service dependencies
+- **[IPC_COMMUNICATION.md](ai_docs/IPC_COMMUNICATION.md)** - IPC handlers, security model, communication patterns, handler registration
+- **[UI_COMPONENTS.md](ai_docs/UI_COMPONENTS.md)** - Renderer architecture, component system, settings dialog, GridStack layout
+- **[WEBUI_HEADLESS.md](ai_docs/WEBUI_HEADLESS.md)** - Headless mode, WebUI server, static client, CLI modes
+- **[INTEGRATIONS.md](ai_docs/INTEGRATIONS.md)** - Camera streaming, Spoolman, notifications, Discord, persistence
+- **[THEME_SYSTEM.md](ai_docs/THEME_SYSTEM.md)** - CSS variables, theme computation, design patterns, hardcoded CSS detection
+- **[TOOLING.md](ai_docs/TOOLING.md)** - Development tools, commands, testing constraints, code search MCP tools
 
 ---
 
 ## Development Workflow Expectations
 
-- **Read the references** in `ai_reference/typescript-best-practices.md` and `ai_reference/electron-typescript-best-practices.md` at the start of every coding session. They capture project-wide patterns (strict typing, IPC hygiene, preload rules, etc.).
+- **Invoke the `best-practices` skill** for universal software engineering principles (SOLID, DRY, KISS, YAGNI, etc.) and the `electron` skill for Electron-specific guidance. These skills provide authoritative best practices.
 
-- **Gather context efficiently**: Prefer `code-search-mcp` tools for fast, comprehensive codebase searching (see [TOOLING.md](ai_reference/TOOLING.md)). For simple queries, use `Grep` or `Glob` built-in tools.
+- **Gather context efficiently**: Prefer `code-search-mcp` tools for fast, comprehensive codebase searching (see [TOOLING.md](ai_docs/TOOLING.md)). For simple queries, use `Grep` or `Glob` built-in tools.
+
+- **Windows Python**: On this Windows development environment, always use `python` not `python3` when running Python scripts or skills.
 
 - **Plan before coding**: create a multi-step plan (skip only for trivial edits) and keep it updated as you complete steps.
 
@@ -55,7 +57,7 @@ For detailed architectural information, see the comprehensive reference document
 
 - **Validation**: run the smallest meaningful checks (`npm run type-check`, `npm run lint`, targeted scripts) before handing work back. Reserve `npm run build*` for user requests or when architectural changes demand it.
 
-- **Completion Checklist** (from [TOOLING.md](ai_reference/TOOLING.md)):
+- **Completion Checklist** (from [TOOLING.md](ai_docs/TOOLING.md)):
   1. Run type checking, if there's errors iterate until they are fixed properly (no band-aids, etc)
   2. Once type checking passes, run build. This ensures electron-vite compiles both main and renderer processes without errors, and if there are any, iterate until they are fixed properly (no band-aids, etc)
   3. Once build passes, the final check is running lint. It's important to never ignore the errors, the more they pile up the harder it becomes to do cleanups/maintain the codebase.
@@ -74,11 +76,11 @@ For detailed architectural information, see the comprehensive reference document
 
 4. Spoolman integration deliberately blocks AD5X/material-station contexts (`src/services/SpoolmanIntegrationService.ts`). Removing the guard regresses filament safety checks.
 
-5. Camera proxy keep-alive + port management live in `CameraProxyService`/`PortAllocator` and the camera priority spec. Do not bypass the allocator or reuse ports manually, especially in headless mode.
+5. **Camera streaming**: `Go2rtcService` provides unified streaming via go2rtc (WebRTC/MSE). `Go2rtcBinaryManager` handles binary lifecycle. `PortAllocator` manages port allocation. Do not manually configure go2rtc streams or bypass the allocator.
 
 6. Headless mode and desktop mode share the same connection/polling/camera stack. Avoid `isHeadlessMode()` forks unless absolutely necessary; duplicating logic leads to drift.
 
-7. **Theme System**: NEVER hardcode colors in CSS. Always use CSS variables from the theme system (`--theme-primary`, `--theme-primary-hover`, `--surface-elevated`, etc.). The theme system handles light/dark themes automatically. See [THEME_SYSTEM.md](ai_reference/THEME_SYSTEM.md).
+7. **Theme System**: NEVER hardcode colors in CSS. Always use CSS variables from the theme system (`--theme-primary`, `--theme-primary-hover`, `--surface-elevated`, etc.). The theme system handles light/dark themes automatically. See [THEME_SYSTEM.md](ai_docs/THEME_SYSTEM.md).
 
 8. **Per-printer settings access**: `PrinterDetailsManager` does NOT have a `getSettings()` method. Per-printer settings (like `showCameraFps`, `customCameraUrl`, `rtspFrameRate`, etc.) are stored directly on `PrinterDetails`. Access them via `context.printerDetails.showCameraFps` rather than inventing manager methods. See `src/shared/types/printer.ts` for the full `PrinterDetails` interface.
 
@@ -131,7 +133,8 @@ For detailed architectural information, see the comprehensive reference document
 
 ### Camera, Notifications & Ports
 
-- `src/main/services/CameraProxyService.ts`, `RtspStreamService.ts`, `src/main/utils/PortAllocator.ts`
+- `src/main/services/Go2rtcService.ts`, `Go2rtcBinaryManager.ts`, `src/main/utils/PortAllocator.ts`
+- `src/main/ipc/camera-ipc-handler.ts`, `src/main/webui/server/routes/camera-routes.ts`
 - `src/main/services/notifications/*`, `src/main/services/discord/DiscordNotificationService.ts`
 
 ### Spoolman & Filament
@@ -152,14 +155,12 @@ For detailed architectural information, see the comprehensive reference document
 
 ### AI Reference Documentation
 
-- **[ARCHITECTURE.md](ai_reference/ARCHITECTURE.md)**: High-level system overview and architectural patterns
-- **[typescript-best-practices.md](ai_reference/typescript-best-practices.md)**: Required reading for TypeScript patterns
-- **[electron-typescript-best-practices.md](ai_reference/electron-typescript-best-practices.md)**: Required reading for Electron-specific patterns
+- **[ARCHITECTURE.md](ai_docs/ARCHITECTURE.md)**: High-level system overview and architectural patterns
 - **Specialized Guides**: See full list in Architecture Quick Reference section above
 
 ### Other Documentation
 
-- **`AGENTS.md`, `GEMINI.md`, `QWEN.md`**: Sibling agent guides for cross-AI alignment
+- **`GEMINI.md`, `QWEN.md`**: Sibling agent guides for cross-AI alignment
 - **`docs/README.md`**: User-facing setup + headless instructions (update alongside feature changes)
 - **`ai_specs/*`**: Authoritative specs for in-flight features; always review before touching scoped areas
 - **`ai_specs/CAMERA_PRIORITY_SPEC.md`**: Camera proxy + RTSP behavior specification

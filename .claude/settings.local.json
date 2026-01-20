@@ -113,7 +113,9 @@
       "Bash(ls:*)",
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:docs.frigate.video)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Skill(get-time)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "additionalDirectories": [
