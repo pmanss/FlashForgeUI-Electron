@@ -121,7 +121,8 @@
       "Bash(gh search prs:*)",
       "Bash(gh search issues:*)",
       "Bash(gh pr view:*)",
-      "Bash(gh pr diff:*)"
+      "Bash(gh pr diff:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "additionalDirectories": [

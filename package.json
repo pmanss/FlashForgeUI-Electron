@@ -40,6 +40,9 @@
 		"specs:list": "tsx scripts/list-specs.ts",
 		"clean": "rimraf out dist \"NVIDIA Corporation\"",
 		"type-check": "npx tsc --noEmit",
+		"test": "jest",
+		"test:watch": "jest --watch",
+		"test:coverage": "jest --coverage",
 		"full-check": "npm run type-check && npm run lint",
 		"audit:dead-code": "ts-node --esm scripts/audit-dead-code.ts"
 	},

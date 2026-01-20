@@ -1,6 +1,6 @@
 // jest.config.js
 module.exports = {
-    testEnvironment: 'jsdom', // Use jsdom to simulate browser environment
+    testEnvironment: 'node', // Use node environment for main process tests
     preset: 'ts-jest',
     transform: {
       '^.+\\.tsx?$': 'ts-jest', // Transform TypeScript files using ts-jest

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Tests for AuthManager covering login validation, token verification,
+ * and timing-attack resistance in password/HMAC comparisons.
+ */
 
 import { AuthManager, getAuthManager } from '../AuthManager';
 import { getConfigManager } from '../../../managers/ConfigManager';

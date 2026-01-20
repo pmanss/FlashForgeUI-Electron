@@ -105,9 +105,10 @@ describe('EnvironmentDetectionService', () => {
       process.env.NODE_ENV = originalNodeEnv;
     });
 
-    it('should detect production environment when NODE_ENV is production', () => {
+    it('should detect production environment when app is packaged', () => {
       const originalNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
+      mockApp.isPackaged = true;
 
       // Create new instance to pick up environment change
       (EnvironmentDetectionService as any).instance = null;
@@ -118,6 +119,7 @@ describe('EnvironmentDetectionService', () => {
       expect(service.getEnvironment()).toBe('production');
 
       process.env.NODE_ENV = originalNodeEnv;
+      mockApp.isPackaged = false;
     });
 
     it('should detect unpackaged state when app.isPackaged is false', () => {
@@ -153,9 +155,9 @@ describe('EnvironmentDetectionService', () => {
     it('should provide correct paths for unpackaged environment', () => {
       const config = service.getConfig();
 
-      expect(config.resourcePaths.webUI).toMatch(/dist[/\\]renderer[/\\]index\.html/);
-      expect(config.resourcePaths.assets).toMatch(/dist[/\\]renderer/);
-      expect(config.resourcePaths.preload).toMatch(/lib[/\\]preload\.js/);
+      expect(config.resourcePaths.webUI).toMatch(/out[/\\]renderer[/\\]index\.html/);
+      expect(config.resourcePaths.assets).toMatch(/out[/\\]renderer/);
+      expect(config.resourcePaths.preload).toMatch(/out[/\\]preload[/\\]index\.js/);
     });
 
     it('should provide correct paths for packaged environment', () => {
@@ -167,9 +169,9 @@ describe('EnvironmentDetectionService', () => {
 
       const config = service.getConfig();
 
-      expect(config.resourcePaths.webUI).toMatch(/app[/\\]dist[/\\]renderer[/\\]index\.html/);
-      expect(config.resourcePaths.assets).toMatch(/app[/\\]dist[/\\]renderer/);
-      expect(config.resourcePaths.preload).toMatch(/app[/\\]lib[/\\]preload\.js/);
+      expect(config.resourcePaths.webUI).toMatch(/out[/\\]renderer[/\\]index\.html/);
+      expect(config.resourcePaths.assets).toMatch(/out[/\\]renderer/);
+      expect(config.resourcePaths.preload).toMatch(/out[/\\]preload[/\\]index\.js/);
     });
 
     it('should resolve relative paths correctly', () => {
@@ -300,13 +302,14 @@ describe('EnvironmentDetectionService', () => {
     it('should provide static path', () => {
       const staticPath = service.getStaticPath();
       expect(staticPath).toBeTruthy();
-      expect(staticPath).toContain('static');
+      expect(staticPath).toContain('renderer');
     });
 
     it('should provide preload path', () => {
       const preloadPath = service.getPreloadPath();
       expect(preloadPath).toBeTruthy();
-      expect(preloadPath).toContain('preload.cjs');
+      expect(preloadPath).toContain('preload');
+      expect(preloadPath).toContain('index.js');
     });
   });
 });
