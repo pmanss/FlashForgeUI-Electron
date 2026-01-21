@@ -25,11 +25,16 @@ jobs:
       - name: Checkout FlashForgeUI
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Configure GitHub Packages Authentication
         shell: bash
@@ -41,10 +46,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run npm ci
+      - name: Install dependencies
         shell: bash
         run: |
-          npm ci
+          pnpm install --frozen-lockfile
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -65,7 +70,7 @@ jobs:
             VERSION="${VERSION}.0.0"
           fi
           echo "Setting version to: $VERSION"
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          pnpm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Build application with electron-builder
         shell: bash

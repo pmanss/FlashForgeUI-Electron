@@ -1,6 +1,6 @@
 # FlashForgeUI-Electron Development Guide
 
-**Last Updated:** 2026-01-19 21:27 ET (America/New_York)
+**Last Updated:** 2026-01-20 18:15 ET (America/New_York)
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -47,15 +47,17 @@ For detailed architectural information, see the comprehensive reference document
 
 - **Gather context efficiently**: Prefer `code-search-mcp` tools for fast, comprehensive codebase searching (see [TOOLING.md](ai_docs/TOOLING.md)). For simple queries, use `Grep` or `Glob` built-in tools.
 
+- **Package Manager**: This project uses **pnpm** (not npm or yarn). Use `pnpm install`, `pnpm add`, `pnpm <script>`, or `pnpm run <script>` for all package operations.
+
 - **Windows Python**: On this Windows development environment, always use `python` not `python3` when running Python scripts or skills.
 
 - **Plan before coding**: create a multi-step plan (skip only for trivial edits) and keep it updated as you complete steps.
 
 - **Editing**: prefer `Edit` tool for targeted changes, keep diffs minimal, and never revert user-owned changes. Maintain ASCII unless the file already uses Unicode.
 
-- **Documentation**: every `.ts` file must begin with an `@fileoverview` block describing purpose, key exports, and relationships. Run `npm run docs:check` if unsure.
+- **Documentation**: every `.ts` file must begin with an `@fileoverview` block describing purpose, key exports, and relationships. Run `pnpm docs:check` if unsure.
 
-- **Validation**: run the smallest meaningful checks (`npm run type-check`, `npm run lint`, targeted scripts) before handing work back. Reserve `npm run build*` for user requests or when architectural changes demand it.
+- **Validation**: run the smallest meaningful checks (`pnpm type-check`, `pnpm lint`, targeted scripts) before handing work back. Reserve `pnpm build*` for user requests or when architectural changes demand it.
 
 - **Completion Checklist** (from [TOOLING.md](ai_docs/TOOLING.md)):
   1. Run type checking, if there's errors iterate until they are fixed properly (no band-aids, etc)
@@ -169,9 +171,9 @@ For detailed architectural information, see the comprehensive reference document
 ### Code Inventory
 
 - **`fileoverview-report.md`** (repo root): Aggregates every `@fileoverview` block across `src/**/*.ts`. Use it to understand module responsibilities quickly before editing; it lists ~230 entries with filenames plus their summaries.
-- **`npm run find:console`**: Surfaces `console.<level>` calls (pass `-- --level=debug` etc.) so you can strip leftover logs before packaging or focus on specific severities quickly.
-- **`npm run find:lucide`**: Shows every file touching Lucide icons, making it simple to prune unused imports or confirm icon hydration paths.
-- **`npm run docs:check`**: Ensures new/updated files keep their `@fileoverview` headers synchronized with this inventory.
+- **`pnpm find:console`**: Surfaces `console.<level>` calls (pass `-- --level=debug` etc.) so you can strip leftover logs before packaging or focus on specific severities quickly.
+- **`pnpm find:lucide`**: Shows every file touching Lucide icons, making it simple to prune unused imports or confirm icon hydration paths.
+- **`pnpm docs:check`**: Ensures new/updated files keep their `@fileoverview` headers synchronized with this inventory.
 
 ---
 

@@ -1,6 +1,6 @@
 # FlashForgeUI-Electron Development Guide
 
-**Last Updated:** 2026-01-19 21:27 ET (America/New_York)
+**Last Updated:** 2026-01-20 18:15 ET (America/New_York)
 
 This file provides guidance to Gemini when working with code in this repository.
 
@@ -33,16 +33,18 @@ For detailed architectural information, see the comprehensive reference document
 
 - **Gather context efficiently**: Use `codebase_investigator` for broad analysis and `search_file_content` or `glob` for targeted searches.
 
+- **Package Manager**: This project uses **pnpm** (not npm or yarn). Use `pnpm install`, `pnpm add`, `pnpm <script>`, or `pnpm run <script>` for all package operations.
+
 - **Windows Python**: On this Windows development environment, always use `python` not `python3` when running Python scripts or skills.
 
 - **Plan before coding**: Create a multi-step plan. For complex tasks, use `write_todos`.
 
-- **Documentation**: Every `.ts` file must begin with an `@fileoverview` block describing purpose, key exports, and relationships. Run `npm run docs:check` if unsure.
+- **Documentation**: Every `.ts` file must begin with an `@fileoverview` block describing purpose, key exports, and relationships. Run `pnpm docs:check` if unsure.
 
-- **Validation**: Run the smallest meaningful checks (`npm run type-check`, `npm run lint`, targeted scripts) before handing work back.
-  1. `npm run type-check`: Ensure no TypeScript errors.
-  2. `npm run build:webui` (if touching webui) or relevant build script.
-  3. `npm run lint`: Never ignore errors.
+- **Validation**: Run the smallest meaningful checks (`pnpm type-check`, `pnpm lint`, targeted scripts) before handing work back.
+  1. `pnpm type-check`: Ensure no TypeScript errors.
+  2. `pnpm build:webui` (if touching webui) or relevant build script.
+  3. `pnpm lint`: Never ignore errors.
 
 ---
 
@@ -128,14 +130,14 @@ For detailed architectural information, see the comprehensive reference document
 ## Building and Running
 
 ### Scripts
-- `npm run dev`: Start development server (Main + Renderer + WebUI).
-- `npm run build`: Build for production.
-- `npm run build:win` / `:mac` / `:linux`: Platform-specific builds.
-- `npm run lint`: Run Biome linter.
-- `npm run type-check`: Run TypeScript check.
-- `npm run audit:dead-code`: Scan for unused code.
-- `npm run find:console`: Find console logs.
-- `npm run find:lucide`: Find icon usage.
+- `pnpm dev`: Start development server (Main + Renderer + WebUI).
+- `pnpm build`: Build for production.
+- `pnpm build:win` / `:mac` / `:linux`: Platform-specific builds.
+- `pnpm lint`: Run Biome linter.
+- `pnpm type-check`: Run TypeScript check.
+- `pnpm audit:dead-code`: Scan for unused code.
+- `pnpm find:console`: Find console logs.
+- `pnpm find:lucide`: Find icon usage.
 
 ---
 

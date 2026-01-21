@@ -2,6 +2,7 @@
 	"name": "FlashForgeUI",
 	"productName": "FlashForgeUI",
 	"version": "1.0.4-alpha.2",
+	"packageManager": "pnpm@10.23.0",
 	"description": "Monitoring and Control software for FlashForge printers",
 	"main": "out/main/index.js",
 	"scripts": {
@@ -39,7 +40,7 @@
 		"find:window": "ts-node --esm scripts/find-window-usage.ts",
 		"specs:list": "tsx scripts/list-specs.ts",
 		"clean": "rimraf out dist \"NVIDIA Corporation\"",
-		"type-check": "npx tsc --noEmit",
+		"type-check": "pnpm exec tsc --noEmit",
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage",

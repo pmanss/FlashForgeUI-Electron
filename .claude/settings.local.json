@@ -122,7 +122,10 @@
       "Bash(gh search issues:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(pnpm:*)",
+      "Skill(best-practices)",
+      "Skill(electron)"
     ],
     "deny": [],
     "additionalDirectories": [

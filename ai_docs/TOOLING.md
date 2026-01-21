@@ -80,19 +80,21 @@ Available MCP search tools:
 
 | Command | Purpose | Notes |
 | --- | --- | --- |
-| `npm run type-check` | `tsc --noEmit` for main process + shared types | Required before concluding substantial TypeScript changes |
-| `npm run lint` | Biome lint check across `src/**` | Run after code changes to catch issues |
-| `npm run lint:fix` | Biome check with auto-fix (`biome check --write src`) | Fixes formatting + lint issues automatically |
-| `npm run format` | Biome formatter only (`biome format --write src`) | For formatting-only updates |
-| `npm run check` | Biome check with write (`biome check --write src`) | Combined lint + format with auto-fix |
-| `npm run ci` | Biome CI mode (`biome ci src`) | Strict checking for CI/CD pipelines, fails on any issues |
-| `npm run docs:check` | Go script scanning for missing `@fileoverview` blocks | Ensures all TypeScript files have documentation headers |
-| `npm run specs:list -- --type active|completed` | Lists AI spec Markdown files (top-level or archive) | Defaults to active specs; pass `--type completed` for `ai_specs/archive` |
-| `npm run audit:dead-code` | Custom dead code analyzer using ts-morph | Discovers entrypoints dynamically and reports unused files/exports |
-| `npm run build` | Build main + renderer + WebUI using electron-vite | Full build of all processes; only when user asks or when structural build impacts occur |
-| `npm run build:webui` | Build WebUI static files only (TypeScript compilation) | Compiles WebUI TypeScript and copies assets to output |
-| `npm run build:win` / `build:linux` / `build:mac` | Platform-specific electron-builder packages | Creates distributable packages for specific platforms |
-| `npm run linecount` / `linecount -- --min-lines=N` | TypeScript LOC summary; optionally filter files with N+ lines | Informational only |
+| `pnpm type-check` | `tsc --noEmit` for main process + shared types | Required before concluding substantial TypeScript changes |
+| `pnpm lint` | Biome lint check across `src/**` | Run after code changes to catch issues |
+| `pnpm lint:fix` | Biome check with auto-fix (`biome check --write src`) | Fixes formatting + lint issues automatically |
+| `pnpm format` | Biome formatter only (`biome format --write src`) | For formatting-only updates |
+| `pnpm check` | Biome check with write (`biome check --write src`) | Combined lint + format with auto-fix |
+| `pnpm ci` | Biome CI mode (`biome ci src`) | Strict checking for CI/CD pipelines, fails on any issues |
+| `pnpm docs:check` | Go script scanning for missing `@fileoverview` blocks | Ensures all TypeScript files have documentation headers |
+| `pnpm specs:list -- --type active\|completed` | Lists AI spec Markdown files (top-level or archive) | Defaults to active specs; pass `--type completed` for `ai_specs/archive` |
+| `pnpm audit:dead-code` | Custom dead code analyzer using ts-morph | Discovers entrypoints dynamically and reports unused files/exports |
+| `pnpm build` | Build main + renderer + WebUI using electron-vite | Full build of all processes; only when user asks or when structural build impacts occur |
+| `pnpm build:webui` | Build WebUI static files only (TypeScript compilation) | Compiles WebUI TypeScript and copies assets to output |
+| `pnpm build:win` / `build:linux` / `build:mac` | Platform-specific electron-builder packages | Creates distributable packages for specific platforms |
+| `pnpm linecount` / `linecount -- --min-lines=N` | TypeScript LOC summary; optionally filter files with N+ lines | Informational only |
+
+> **Note:** This project uses **pnpm** as the package manager. All commands should use `pnpm` instead of `npm`. Use `pnpm install`, `pnpm add <pkg>`, `pnpm <script>`, or `pnpm run <script>` for all package operations.
 
 ---
 
@@ -100,7 +102,7 @@ Available MCP search tools:
 
 Claude agents can run:
 - Static inspection, reasoning about architecture
-- `npm run type-check`, `npm run lint`, `npm run docs:check`, `npm run audit:dead-code`
+- `pnpm type-check`, `pnpm lint`, `pnpm docs:check`, `pnpm audit:dead-code`
 - All Biome commands: `lint`, `lint:fix`, `format`, `check`, `ci`
 - Targeted node scripts (no GUI)
 
@@ -126,6 +128,6 @@ Do not say you are done with something despite not having run one/any of these c
 ## Fileoverview Inventory
 
 - `fileoverview-report.md` (repo root) aggregates every `@fileoverview` block across `src/**/*.ts`. Use it to understand module responsibilities quickly before editing; it lists ~230 entries with filenames plus their summaries.
-- `npm run find:console` surfaces `console.<level>` calls (pass `-- --level=debug` etc.) so you can strip leftover logs before packaging or focus on specific severities quickly.
-- `npm run find:lucide` shows every file touching Lucide icons, making it simple to prune unused imports or confirm icon hydration paths.
-- Run `npm run docs:check` to ensure new/updated files keep their `@fileoverview` headers synchronized with this inventory.
+- `pnpm find:console` surfaces `console.<level>` calls (pass `-- --level=debug` etc.) so you can strip leftover logs before packaging or focus on specific severities quickly.
+- `pnpm find:lucide` shows every file touching Lucide icons, making it simple to prune unused imports or confirm icon hydration paths.
+- Run `pnpm docs:check` to ensure new/updated files keep their `@fileoverview` headers synchronized with this inventory.

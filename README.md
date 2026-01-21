@@ -221,16 +221,16 @@
 
 | Command | Description |
 | --- | --- |
-| `npm install` | Install dependencies |
-| `npm run dev` | Start development server with hot reload |
-| `npm run build` | Build main process, renderer, and WebUI |
-| `npm run build:win` | Build Windows installer |
-| `npm run build:mac` | Build macOS package |
-| `npm run build:linux` | Build Linux packages |
-| `npm run type-check` | Run TypeScript type checking |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Auto-fix linting issues |
-| `npm run docs:check` | Validate fileoverview documentation |
+| `pnpm install` | Install dependencies |
+| `pnpm dev` | Start development server with hot reload |
+| `pnpm build` | Build main process, renderer, and WebUI |
+| `pnpm build:win` | Build Windows installer |
+| `pnpm build:mac` | Build macOS package |
+| `pnpm build:linux` | Build Linux packages |
+| `pnpm type-check` | Run TypeScript type checking |
+| `pnpm lint` | Run Biome linter |
+| `pnpm lint:fix` | Auto-fix linting issues |
+| `pnpm docs:check` | Validate fileoverview documentation |
 
 </div>
 
