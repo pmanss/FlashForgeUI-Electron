@@ -12,3 +12,8 @@
 **Vulnerability:** The `JobStartRequestSchema` validated filenames only by length (`min(1)`), allowing path traversal characters (e.g., `../../etc/passwd`). If the backend naively concatenates this filename to a path, it allows arbitrary file read/write.
 **Learning:** Zod's string validation is basic. For file paths, explicit validation against directory traversal (e.g., forbidding `..`) is essential, especially when inputs are passed to filesystem operations.
 **Prevention:** Use `.refine()` in Zod schemas to reject strings containing `..` path segments: `/(^|[\/])\.\.([\/]|$)/`.
+
+## 2026-01-24 - Missing Security Headers
+**Vulnerability:** The WebUI server was missing standard HTTP security headers (X-Frame-Options, X-Content-Type-Options, Content-Security-Policy, etc.), potentially exposing it to clickjacking, MIME-sniffing, and XSS attacks.
+**Learning:** Express.js does not include security headers by default. Explicit middleware is required to set them.
+**Prevention:** Always include security headers middleware in the Express app setup pipeline to set X-Content-Type-Options, X-Frame-Options, Referrer-Policy, and Content-Security-Policy headers.
