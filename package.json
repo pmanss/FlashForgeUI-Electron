@@ -1,7 +1,7 @@
 {
 	"name": "FlashForgeUI",
 	"productName": "FlashForgeUI",
-	"version": "1.0.4-alpha.2",
+	"version": "1.0.4",
 	"packageManager": "pnpm@10.23.0",
 	"description": "Monitoring and Control software for FlashForge printers",
 	"main": "out/main/index.js",
@@ -55,6 +55,12 @@
 	"license": "MIT",
 	"overrides": {
 		"js-yaml": "4.1.1"
+	},
+	"pnpm": {
+		"overrides": {
+			"tar": "7.5.4",
+			"lodash": "4.17.23"
+		}
 	},
 	"dependencies": {
 		"@ghosttypes/ff-api": "*",
