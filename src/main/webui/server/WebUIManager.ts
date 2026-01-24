@@ -43,6 +43,7 @@ import {
   createLoginRateLimiter,
   createRequestLogger,
 } from './auth-middleware.js';
+import { createSecurityMiddleware } from './security-middleware.js';
 import { registerPublicThemeRoutes } from './routes/theme-routes.js';
 import { getWebSocketManager } from './WebSocketManager.js';
 
@@ -155,6 +156,9 @@ export class WebUIManager extends EventEmitter {
 
     // Request logging
     this.expressApp.use(createRequestLogger());
+
+    // Security Headers
+    this.expressApp.use(createSecurityMiddleware());
 
     // JSON body parsing
     this.expressApp.use(express.json());
