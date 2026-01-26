@@ -154,7 +154,7 @@ export class AuthManager {
     // Opportunistic migration: if we just successfully logged in with a plaintext password, hash it now
     if (!serverPassword.startsWith('pbkdf2:')) {
       console.log('Migrating WebUI password to secure hash after successful login');
-      const hashedPassword = this.hashPassword(serverPassword);
+      const hashedPassword = this.hashPassword(passwordInput);
       this.configManager.set('WebUIPassword', hashedPassword);
     }
 
