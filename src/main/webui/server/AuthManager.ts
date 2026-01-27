@@ -51,6 +51,7 @@ export class AuthManager {
   private readonly sessions = new Map<string, SessionInfo>();
   private readonly sessionTimeout = 24 * 60 * 60 * 1000; // 24 hours for persistent
   private readonly tempSessionTimeout = 60 * 60 * 1000; // 1 hour for temporary
+  private readonly PBKDF2_ITERATIONS = 210000; // OWASP recommended minimum for PBKDF2-HMAC-SHA512
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor() {
@@ -78,7 +79,7 @@ export class AuthManager {
    */
   private hashPassword(password: string): string {
     const salt = crypto.randomBytes(16).toString('hex');
-    const iterations = 10000;
+    const iterations = this.PBKDF2_ITERATIONS;
     const keylen = 64;
     const digest = 'sha512';
 

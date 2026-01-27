@@ -24,3 +24,8 @@
 1. **Startup Migration:** Check and migrate data when the service initializes.
 2. **Opportunistic Migration:** If startup migration is bypassed (e.g., config hot-reload), migrate when the legacy data is successfully used (e.g., on successful login).
 **Prevention:** Always store passwords hashed (e.g., PBKDF2, Argon2). When upgrading, ensure backward compatibility by detecting the data format (plaintext vs hash) and upgrading it transparently.
+
+## 2026-01-26 - PBKDF2 Iterations Hardening
+**Improvement:** Increased PBKDF2-SHA512 iterations from 10,000 to 210,000 (OWASP recommended minimum) before initial release to protect against offline brute-force attacks.
+**Learning:** Security constants (like iteration counts) degrade over time as hardware improves. When starting a new project, always use current OWASP recommendations rather than outdated defaults.
+**Prevention:** Reference OWASP Password Storage Cheat Sheet for current iteration recommendations when implementing password hashing.
