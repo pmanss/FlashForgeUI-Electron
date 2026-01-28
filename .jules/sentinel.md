@@ -29,3 +29,8 @@
 **Improvement:** Increased PBKDF2-SHA512 iterations from 10,000 to 210,000 (OWASP recommended minimum) before initial release to protect against offline brute-force attacks.
 **Learning:** Security constants (like iteration counts) degrade over time as hardware improves. When starting a new project, always use current OWASP recommendations rather than outdated defaults.
 **Prevention:** Reference OWASP Password Storage Cheat Sheet for current iteration recommendations when implementing password hashing.
+
+## 2026-02-17 - Optional Auth Middleware Gap
+**Vulnerability:** The `/api/auth/logout` endpoint was registered before the global authentication middleware in Express to allow "optional" authentication. However, this meant the `req.auth` property, which the handler relied on to revoke the token, was never populated, rendering the logout ineffective.
+**Learning:** Middleware application order in Express is critical. If a route is registered before a middleware, that middleware does not run for it. "Optional" auth often leads to logic gaps if the handler assumes the middleware ran.
+**Prevention:** For endpoints needing optional auth, either apply the auth middleware specifically to that route (allowing failure/pass-through) or manually handle token extraction within the route handler, as was done for the fix.

@@ -251,8 +251,12 @@ export class WebUIManager extends EventEmitter {
 
     // Logout endpoint (optional auth)
     this.expressApp.post('/api/auth/logout', (req: AuthenticatedRequest, res) => {
-      if (req.auth?.token) {
-        this.authManager.revokeToken(req.auth.token);
+      // Manually extract token since this route is not protected by auth middleware
+      const authHeader = req.headers.authorization;
+      const token = this.authManager.extractTokenFromHeader(authHeader);
+
+      if (token) {
+        this.authManager.revokeToken(token);
       }
 
       const response: StandardAPIResponse = {
