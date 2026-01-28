@@ -30,6 +30,11 @@
 **Learning:** Security constants (like iteration counts) degrade over time as hardware improves. When starting a new project, always use current OWASP recommendations rather than outdated defaults.
 **Prevention:** Reference OWASP Password Storage Cheat Sheet for current iteration recommendations when implementing password hashing.
 
+## 2026-02-17 - Optional Auth Middleware Gap
+**Vulnerability:** The `/api/auth/logout` endpoint was registered before the global authentication middleware in Express to allow "optional" authentication. However, this meant the `req.auth` property, which the handler relied on to revoke the token, was never populated, rendering the logout ineffective.
+**Learning:** Middleware application order in Express is critical. If a route is registered before a middleware, that middleware does not run for it. "Optional" auth often leads to logic gaps if the handler assumes the middleware ran.
+**Prevention:** For endpoints needing optional auth, either apply the auth middleware specifically to that route (allowing failure/pass-through) or manually handle token extraction within the route handler, as was done for the fix.
+
 ## 2026-02-18 - Stored XSS in Theme Profile Name
 **Vulnerability:** The application was vulnerable to Stored XSS in the theme profile management. The profile name was being interpolated directly into `innerHTML` when rendering profile cards: `<span class="profile-name">${profile.name}</span>`. This allows an attacker (or a compromised account) to create a profile with a name containing malicious scripts (e.g., `<img src=x onerror=alert(1)>`) which would execute when any user views the list of theme profiles.
 **Learning:** Even when inputs are validated on the server or come from authenticated sources, rendering them unsafely using `innerHTML` creates vulnerabilities. String interpolation into HTML is almost always unsafe for user data.
