@@ -255,7 +255,7 @@ export class WebUIManager extends EventEmitter {
       const authHeader = req.headers.authorization;
       const token = this.authManager.extractTokenFromHeader(authHeader);
 
-      if (token) {
+      if (token && this.authManager.verifyToken(token)) {
         this.authManager.revokeToken(token);
       }
 
