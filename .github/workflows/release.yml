@@ -28,7 +28,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.23.0
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -77,11 +77,11 @@ jobs:
         run: |
           # Use platform-specific build commands
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            npm run build:ci:linux
+            pnpm run build:ci:linux
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            npm run build:ci:win
+            pnpm run build:ci:win
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            npm run build:ci:mac
+            pnpm run build:ci:mac
           fi
 
       - name: Upload Build Artifacts
