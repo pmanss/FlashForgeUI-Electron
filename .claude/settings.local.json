@@ -136,7 +136,8 @@
       "Bash(for:*)",
       "Bash(do echo \"=== COMMIT $commit ===\")",
       "Bash(done)",
-      "Bash(gemini:*)"
+      "Bash(gemini:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "additionalDirectories": [
