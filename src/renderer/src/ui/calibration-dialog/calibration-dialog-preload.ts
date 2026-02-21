@@ -41,6 +41,17 @@ interface StoredSSHConfig {
   saveCredentials?: boolean;
 }
 
+interface ActivePrinterContextInfo {
+  id?: string;
+  name?: string;
+  ip?: string;
+}
+
+async function getActivePrinterContext(): Promise<ActivePrinterContextInfo | null> {
+  const active = (await ipcRenderer.invoke('printer-contexts:get-active')) as ActivePrinterContextInfo | null;
+  return active && typeof active === 'object' ? active : null;
+}
+
 /**
  * Calibration API exposed to renderer.
  */
@@ -270,17 +281,30 @@ const calibrationAPI = {
 const windowAPI = {
   /** Close the dialog window */
   close: (): void => {
-    ipcRenderer.send('window:close');
+    ipcRenderer.send('close-current-window');
   },
 
   /** Get current printer context ID */
   getContextId: (): Promise<string | null> => {
-    return ipcRenderer.invoke('printer-context:get-active-id');
+    return getActivePrinterContext().then((active) => (typeof active?.id === 'string' ? active.id : null));
   },
 
   /** Get printer context info */
   getContextInfo: (): Promise<{ name: string; ip: string } | null> => {
-    return ipcRenderer.invoke('printer-context:get-active-info');
+    return getActivePrinterContext().then((active) => {
+      if (!active) {
+        return null;
+      }
+
+      const name = typeof active.name === 'string' ? active.name : '';
+      const ip = typeof active.ip === 'string' ? active.ip : '';
+
+      if (!name && !ip) {
+        return null;
+      }
+
+      return { name, ip };
+    });
   },
 };
 

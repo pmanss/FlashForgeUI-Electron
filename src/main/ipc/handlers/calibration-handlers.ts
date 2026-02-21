@@ -359,10 +359,7 @@ export function registerCalibrationHandlers(): void {
   ipcMain.handle(
     'calibration:ssh-fetch-config',
     async (_event, contextId: string, remotePath?: string): Promise<string> => {
-      if (remotePath) {
-        return scpTransfer.readRemoteFile(contextId, remotePath);
-      }
-      return scpTransfer.fetchPrinterConfig(contextId);
+      return scpTransfer.fetchPrinterConfig(contextId, remotePath);
     }
   );
 

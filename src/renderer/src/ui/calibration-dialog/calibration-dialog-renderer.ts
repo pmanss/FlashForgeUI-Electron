@@ -31,6 +31,7 @@ import {
 interface DialogState {
   contextId: string | null;
   contextName: string | null;
+  contextIp: string | null;
   meshData: MeshData | null;
   analysisResult: AnalysisResult | null;
   workflowData: WorkflowData | null;
@@ -47,6 +48,7 @@ interface DialogState {
 const state: DialogState = {
   contextId: null,
   contextName: null,
+  contextIp: null,
   meshData: null,
   analysisResult: null,
   workflowData: null,
@@ -147,13 +149,20 @@ async function initialize(): Promise<void> {
   // Initialize Lucide icons
   createIcons({ icons });
 
-  // Get printer context
-  const contextId = await window.windowAPI.getContextId();
-  const contextInfo = await window.windowAPI.getContextInfo();
+  // Get printer context (non-fatal; dialog should still be usable if this fails)
+  let contextId: string | null = null;
+  let contextInfo: { name: string; ip: string } | null = null;
+
+  try {
+    [contextId, contextInfo] = await Promise.all([window.windowAPI.getContextId(), window.windowAPI.getContextInfo()]);
+  } catch (error) {
+    console.error('Failed to get active printer context:', error);
+  }
 
   if (contextId) {
     state.contextId = contextId;
     state.contextName = contextInfo?.name || contextId;
+    state.contextIp = contextInfo?.ip?.trim() || null;
     elements.printerContextIndicator.textContent = `Printer: ${state.contextName}`;
   } else {
     elements.printerContextIndicator.textContent = 'No printer connected';
@@ -309,19 +318,28 @@ async function loadSSHSettings(): Promise<void> {
   if (!state.contextId) return;
 
   try {
+    // Host is sourced from the active printer context; port is fixed for FlashForge SSH.
+    const detectedHost = state.contextIp?.trim() || '';
+    elements.sshHost.readOnly = true;
+    elements.sshPort.readOnly = true;
+    elements.sshPort.value = '22';
+
     const saved = await window.calibration.getSSHConfig(state.contextId);
-    if (!saved) {
-      return;
+    const savedHost = saved?.host?.trim() || '';
+    elements.sshHost.value = detectedHost || savedHost;
+
+    if (!elements.sshHost.value) {
+      elements.sshHost.placeholder = 'Printer IP unavailable (connect printer first)';
     }
 
-    if (saved.host) elements.sshHost.value = saved.host;
-    if (saved.port) elements.sshPort.value = String(saved.port);
-    if (saved.username) elements.sshUsername.value = saved.username;
-    if (saved.password) elements.sshPassword.value = saved.password;
-    if (saved.keyPath) elements.sshKeyPath.value = saved.keyPath;
-    if (saved.configPath) elements.sshConfigPath.value = saved.configPath;
-    if (typeof saved.saveCredentials === 'boolean') {
-      elements.sshSaveCredentials.checked = saved.saveCredentials;
+    if (saved) {
+      if (saved.username) elements.sshUsername.value = saved.username;
+      if (saved.password) elements.sshPassword.value = saved.password;
+      if (saved.keyPath) elements.sshKeyPath.value = saved.keyPath;
+      if (saved.configPath) elements.sshConfigPath.value = saved.configPath;
+      if (typeof saved.saveCredentials === 'boolean') {
+        elements.sshSaveCredentials.checked = saved.saveCredentials;
+      }
     }
   } catch (error) {
     console.error('Failed to load SSH settings:', error);
@@ -838,6 +856,10 @@ async function handleSSHConnect(): Promise<void> {
   if (!state.contextId) return;
 
   const config = buildSSHConfig();
+  if (!config.host) {
+    setSSHResult('Printer IP unavailable. Connect a printer first.', 'error');
+    return;
+  }
 
   try {
     elements.btnSSHConnect.disabled = true;
@@ -870,6 +892,10 @@ async function handleSSHTest(): Promise<void> {
   if (!state.contextId) return;
 
   const config = buildSSHConfig();
+  if (!config.host) {
+    setSSHResult('Printer IP unavailable. Connect a printer first.', 'error');
+    return;
+  }
 
   try {
     elements.btnSSHTest.disabled = true;
@@ -901,13 +927,17 @@ function setSSHResult(message: string, type: 'success' | 'error' | 'info'): void
   }
 }
 
+function resolveSSHHost(): string {
+  return state.contextIp?.trim() || elements.sshHost.value.trim();
+}
+
 function buildSSHConfig(): SSHConnectionConfig {
   const password = elements.sshPassword.value.trim();
   const keyPath = elements.sshKeyPath.value.trim();
 
   return {
-    host: elements.sshHost.value.trim(),
-    port: parseInt(elements.sshPort.value, 10) || 22,
+    host: resolveSSHHost(),
+    port: 22,
     username: elements.sshUsername.value.trim() || 'root',
     password: password.length > 0 ? password : undefined,
     privateKey: keyPath.length > 0 ? keyPath : undefined,
@@ -925,8 +955,8 @@ async function persistSSHSettings(): Promise<void> {
   }
 
   await window.calibration.saveSSHConfig(state.contextId, {
-    host: elements.sshHost.value.trim(),
-    port: parseInt(elements.sshPort.value, 10) || 22,
+    host: resolveSSHHost(),
+    port: 22,
     username: elements.sshUsername.value.trim() || 'root',
     password: elements.sshPassword.value,
     keyPath: elements.sshKeyPath.value.trim(),

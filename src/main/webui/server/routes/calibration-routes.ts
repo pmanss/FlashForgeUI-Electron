@@ -479,9 +479,7 @@ export function registerCalibrationRoutes(router: Router, deps: RouteDependencie
       }
 
       const { remotePath } = req.body as { remotePath?: string };
-      const content = remotePath
-        ? await scpTransfer.readRemoteFile(contextResult.contextId, remotePath)
-        : await scpTransfer.fetchPrinterConfig(contextResult.contextId);
+      const content = await scpTransfer.fetchPrinterConfig(contextResult.contextId, remotePath);
       return res.json({ success: true, content });
     } catch (error) {
       const appError = toAppError(error);

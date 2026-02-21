@@ -127,20 +127,20 @@ describe('ScrewSolver', () => {
   });
 
   describe('getDirection', () => {
-    it('should return CW for positive deviation (bed too high)', () => {
+    it('should return CCW for positive deviation (bed too low)', () => {
       const direction = solver.getDirection(0.1);
+      expect(direction).toBe(RotationDirection.COUNTERCLOCKWISE);
+    });
+
+    it('should return CW for negative deviation (bed too high)', () => {
+      const direction = solver.getDirection(-0.1);
       expect(direction).toBe(RotationDirection.CLOCKWISE);
     });
 
-    it('should return CCW for negative deviation (bed too low)', () => {
-      const direction = solver.getDirection(-0.1);
-      expect(direction).toBe(RotationDirection.COUNTERCLOCKWISE);
-    });
-
-    it('should return CCW for zero deviation', () => {
+    it('should return CW for zero deviation', () => {
       const direction = solver.getDirection(0);
-      // Zero is not > 0, so returns CCW
-      expect(direction).toBe(RotationDirection.COUNTERCLOCKWISE);
+      // Zero is not > 0, so returns CW
+      expect(direction).toBe(RotationDirection.CLOCKWISE);
     });
   });
 
@@ -165,7 +165,7 @@ describe('ScrewSolver', () => {
       const adjustment = solver.calculateCornerAdjustment(BedCorner.FRONT_LEFT, 0, 0);
 
       expect(adjustment.corner).toBe(BedCorner.FRONT_LEFT);
-      expect(adjustment.deviation).toBeCloseTo(0.2, 5);
+      expect(adjustment.deviation).toBeCloseTo(-0.2, 5);
       expect(adjustment.direction).toBe(RotationDirection.CLOCKWISE);
       expect(adjustment.requiresAdjustment).toBe(true);
     });
@@ -240,9 +240,9 @@ describe('ScrewSolver', () => {
       solver.setReferenceCorner(BedCorner.REAR_RIGHT);
       const adjustments = solver.calculateAdjustments();
 
-      // Front-left is 0.2, rear-right is -0.2, so deviation = 0.4
+      // Front-left is 0.2, rear-right is -0.2, target is -0.2, so deviation = -0.4
       const flAdj = adjustments.find((a) => a.corner === BedCorner.FRONT_LEFT);
-      expect(flAdj?.deviation).toBeCloseTo(0.4, 5);
+      expect(flAdj?.deviation).toBeCloseTo(-0.4, 5);
     });
   });
 
@@ -253,12 +253,12 @@ describe('ScrewSolver', () => {
 
       // Front-left at 0.2 should need adjustment to reach 0
       const flAdj = adjustments.find((a) => a.corner === BedCorner.FRONT_LEFT);
-      expect(flAdj?.deviation).toBeCloseTo(0.2, 5);
+      expect(flAdj?.deviation).toBeCloseTo(-0.2, 5);
       expect(flAdj?.direction).toBe(RotationDirection.CLOCKWISE); // Lower it
 
       // Rear-right at -0.2 should need adjustment to reach 0
       const rrAdj = adjustments.find((a) => a.corner === BedCorner.REAR_RIGHT);
-      expect(rrAdj?.deviation).toBeCloseTo(-0.2, 5);
+      expect(rrAdj?.deviation).toBeCloseTo(0.2, 5);
       expect(rrAdj?.direction).toBe(RotationDirection.COUNTERCLOCKWISE); // Raise it
     });
   });

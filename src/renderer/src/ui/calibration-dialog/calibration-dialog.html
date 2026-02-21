@@ -218,13 +218,13 @@
 
           <div class="settings-section">
             <div class="input-group">
-              <label for="ssh-host">Printer IP Address:</label>
-              <input type="text" id="ssh-host" class="settings-input" placeholder="192.168.1.100">
+              <label for="ssh-host">Printer IP Address (Auto-detected):</label>
+              <input type="text" id="ssh-host" class="settings-input" placeholder="Active printer IP" readonly>
             </div>
 
             <div class="input-group">
-              <label for="ssh-port">SSH Port:</label>
-              <input type="number" id="ssh-port" class="settings-input" value="22" min="1" max="65535">
+              <label for="ssh-port">SSH Port (Fixed):</label>
+              <input type="number" id="ssh-port" class="settings-input" value="22" min="1" max="65535" readonly>
             </div>
 
             <div class="input-group">
@@ -273,11 +273,11 @@
           <div class="settings-section">
             <h4 class="subsection-title">Remote Paths</h4>
             <div class="settings-info-text">
-              Default paths for FlashForge printers with Klipper firmware.
+              Override only if your printer uses a custom location.
             </div>
             <div class="input-group">
-              <label for="ssh-config-path">printer.cfg Path:</label>
-              <input type="text" id="ssh-config-path" class="settings-input" value="/home/klipper/printer_data/config/printer.cfg">
+              <label for="ssh-config-path">printer.cfg Path (optional override):</label>
+              <input type="text" id="ssh-config-path" class="settings-input" placeholder="Auto-detect (recommended)">
             </div>
           </div>
         </div>
