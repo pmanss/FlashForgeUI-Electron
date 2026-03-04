@@ -5,8 +5,8 @@
  * @module main/services/calibration/__tests__/Bed.test
  */
 
-import { BedCorner, DEFAULT_BED_CONFIG } from '../../../../shared/types/calibration';
 import type { BedConfig, MeshData } from '../../../../shared/types/calibration';
+import { BedCorner, DEFAULT_BED_CONFIG } from '../../../../shared/types/calibration';
 import { Bed } from '../engine/Bed';
 
 describe('Bed', () => {
@@ -66,7 +66,11 @@ describe('Bed', () => {
 
     it('should deep copy mesh data', () => {
       const bed = new Bed(config3x3);
-      const originalMesh = [[0.1, 0.0, -0.1], [0.05, 0.0, -0.05], [0.0, -0.05, -0.1]];
+      const originalMesh = [
+        [0.1, 0.0, -0.1],
+        [0.05, 0.0, -0.05],
+        [0.0, -0.05, -0.1],
+      ];
       bed.setMeshData(originalMesh);
 
       // Modify original
@@ -78,13 +82,20 @@ describe('Bed', () => {
 
     it('should throw on invalid row count', () => {
       const bed = new Bed(config3x3);
-      const invalidMesh = [[0.1, 0.0, -0.1], [0.05, 0.0, -0.05]]; // Only 2 rows
+      const invalidMesh = [
+        [0.1, 0.0, -0.1],
+        [0.05, 0.0, -0.05],
+      ]; // Only 2 rows
       expect(() => bed.setMeshData(invalidMesh)).toThrow(/Invalid mesh row count/);
     });
 
     it('should throw on invalid column count', () => {
       const bed = new Bed(config3x3);
-      const invalidMesh = [[0.1, 0.0], [0.05, 0.0, -0.05], [0.0, -0.05, -0.1]]; // First row has only 2 columns
+      const invalidMesh = [
+        [0.1, 0.0],
+        [0.05, 0.0, -0.05],
+        [0.0, -0.05, -0.1],
+      ]; // First row has only 2 columns
       expect(() => bed.setMeshData(invalidMesh)).toThrow(/Invalid mesh column count/);
     });
   });

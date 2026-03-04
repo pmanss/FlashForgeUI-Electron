@@ -19,8 +19,8 @@ import type {
   PrinterCalibrationData,
   ShaperResult,
   StageResult,
-  WorkflowStage,
   WorkflowData,
+  WorkflowStage,
 } from '../../shared/types/calibration';
 import { DEFAULT_BED_CONFIG, DEFAULT_CALIBRATION_SETTINGS } from '../../shared/types/calibration';
 import { Bed, DeviationAnalyzer, ScrewSolver, TapeCalculator, WorkflowEngine } from '../services/calibration/engine';

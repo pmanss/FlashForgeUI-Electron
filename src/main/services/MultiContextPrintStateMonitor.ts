@@ -13,10 +13,10 @@
  * @exports MultiContextPrintStateMonitor - Multi-context state monitor coordinator
  */
 
+import type { ContextRemovedEvent } from '@shared/types/PrinterContext.js';
+import { getPrinterContextManager } from '../managers/PrinterContextManager.js';
 import type { PrinterPollingService } from './PrinterPollingService.js';
 import { PrintStateMonitor } from './PrintStateMonitor.js';
-import { getPrinterContextManager } from '../managers/PrinterContextManager.js';
-import type { ContextRemovedEvent } from '@shared/types/PrinterContext.js';
 
 /**
  * Multi-context coordinator for print state monitoring

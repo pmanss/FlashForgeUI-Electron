@@ -51,6 +51,11 @@ import {
   supportsDualAPI,
 } from '../utils/PrinterUtils.js';
 
+type PerPrinterFeatureSettings = Pick<
+  BackendInitOptions['printerDetails'],
+  'customCameraEnabled' | 'customCameraUrl' | 'customLedsEnabled' | 'forceLegacyMode'
+>;
+
 /**
  * Abstract base class for all printer backends
  * Provides common functionality and enforces interface contracts
@@ -73,10 +78,10 @@ export abstract class BasePrinterBackend extends EventEmitter {
   private featureOverrides: Record<string, unknown> = {};
 
   // Per-printer settings
-  protected readonly customCameraEnabled: boolean;
-  protected readonly customCameraUrl: string;
-  protected readonly customLedsEnabled: boolean;
-  protected readonly forceLegacyMode: boolean;
+  protected customCameraEnabled: boolean;
+  protected customCameraUrl: string;
+  protected customLedsEnabled: boolean;
+  protected forceLegacyMode: boolean;
 
   constructor(options: BackendInitOptions) {
     super();
@@ -156,15 +161,56 @@ export abstract class BasePrinterBackend extends EventEmitter {
    */
   private updateFeatureOverrides(): void {
     this.loadFeatureOverrides();
+    this.rebuildFeatureSet(true);
+  }
 
-    // Refresh feature set with new overrides
+  private rebuildFeatureSet(emitUpdateEvent = false, changedKeys: readonly string[] = []): void {
     this.features = this.buildFeatureSet();
 
-    // Emit event for UI updates
+    if (!emitUpdateEvent) {
+      return;
+    }
+
     this.emitEvent('feature-updated', {
       features: this.features,
       overrides: this.featureOverrides,
+      changedKeys,
     });
+  }
+
+  public refreshPerPrinterSettings(settings: PerPrinterFeatureSettings): readonly string[] {
+    const changedKeys: string[] = [];
+    const nextCustomCameraEnabled = settings.customCameraEnabled ?? false;
+    const nextCustomCameraUrl = settings.customCameraUrl ?? '';
+    const nextCustomLedsEnabled = settings.customLedsEnabled ?? false;
+    const nextForceLegacyMode = settings.forceLegacyMode ?? false;
+
+    if (this.customCameraEnabled !== nextCustomCameraEnabled) {
+      this.customCameraEnabled = nextCustomCameraEnabled;
+      changedKeys.push('customCameraEnabled');
+    }
+
+    if (this.customCameraUrl !== nextCustomCameraUrl) {
+      this.customCameraUrl = nextCustomCameraUrl;
+      changedKeys.push('customCameraUrl');
+    }
+
+    if (this.customLedsEnabled !== nextCustomLedsEnabled) {
+      this.customLedsEnabled = nextCustomLedsEnabled;
+      changedKeys.push('customLedsEnabled');
+    }
+
+    if (this.forceLegacyMode !== nextForceLegacyMode) {
+      this.forceLegacyMode = nextForceLegacyMode;
+      changedKeys.push('forceLegacyMode');
+    }
+
+    if (changedKeys.length === 0) {
+      return changedKeys;
+    }
+
+    this.rebuildFeatureSet(true, changedKeys);
+    return changedKeys;
   }
 
   /**
@@ -201,7 +247,7 @@ export abstract class BasePrinterBackend extends EventEmitter {
       }
 
       // Build feature set
-      this.features = this.buildFeatureSet();
+      this.rebuildFeatureSet();
 
       // Perform backend-specific initialization
       await this.initializeBackend();

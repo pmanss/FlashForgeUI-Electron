@@ -5,15 +5,11 @@
  * and SSH helpers so the WebUI can mirror the desktop dialog functionality.
  */
 
+import type { CalibrationSettings, ShaperResult, SSHConnectionConfig } from '@shared/types/calibration.js';
 import type { Response, Router } from 'express';
-import type {
-  CalibrationSettings,
-  SSHConnectionConfig,
-  ShaperResult,
-} from '@shared/types/calibration.js';
-import { toAppError } from '../../../utils/error.utils.js';
 import { getCalibrationManager } from '../../../managers/CalibrationManager.js';
 import { getSSHConnectionManager, SCPFileTransfer } from '../../../services/calibration/ssh/index.js';
+import { toAppError } from '../../../utils/error.utils.js';
 import type { AuthenticatedRequest } from '../auth-middleware.js';
 import { type RouteDependencies, resolveContext, sendErrorResponse } from './route-helpers.js';
 

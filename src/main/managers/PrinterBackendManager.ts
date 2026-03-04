@@ -120,6 +120,10 @@ export class PrinterBackendManager extends EventEmitter {
       this.handleConfigurationChange(event.changedKeys);
     });
 
+    this.contextManager.on('context-updated', (contextId: string) => {
+      this.handleContextUpdate(contextId);
+    });
+
     // Monitor loading manager for UI coordination
     this.loadingManager.on('loadingStateChanged', (state: string) => {
       this.emit('loading-state-changed', state);
@@ -147,6 +151,31 @@ export class PrinterBackendManager extends EventEmitter {
         }
       }
     }
+  }
+
+  private handleContextUpdate(contextId: string): void {
+    const context = this.contextManager.getContext(contextId);
+    if (!context) {
+      return;
+    }
+
+    this.contextPrinterDetails.set(contextId, context.printerDetails);
+
+    const backend = this.contextBackends.get(contextId);
+    if (!backend) {
+      return;
+    }
+
+    const changedKeys = backend.refreshPerPrinterSettings(context.printerDetails);
+    if (changedKeys.length === 0) {
+      return;
+    }
+
+    this.emit('backend-features-changed', {
+      backend,
+      contextId,
+      changedKeys,
+    });
   }
 
   /**

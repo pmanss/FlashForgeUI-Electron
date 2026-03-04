@@ -1,0 +1,35 @@
+import type { Response } from 'express';
+
+export interface WebUIStaticAssetOptions {
+  readonly fallthrough: boolean;
+  readonly etag: boolean;
+  readonly lastModified: boolean;
+  readonly maxAge: number;
+  readonly setHeaders: (response: Response) => void;
+}
+
+export function getWebUIStaticAssetHeaders(): Readonly<Record<string, string>> {
+  return {
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+  };
+}
+
+export function applyWebUIStaticAssetHeaders(response: Response): void {
+  const headers = getWebUIStaticAssetHeaders();
+
+  for (const [headerName, headerValue] of Object.entries(headers)) {
+    response.setHeader(headerName, headerValue);
+  }
+}
+
+export function createWebUIStaticAssetOptions(): WebUIStaticAssetOptions {
+  return {
+    fallthrough: true,
+    etag: false,
+    lastModified: false,
+    maxAge: 0,
+    setHeaders: applyWebUIStaticAssetHeaders,
+  };
+}

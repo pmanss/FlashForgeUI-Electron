@@ -7,8 +7,8 @@
  * @module services/discord/__tests__/DiscordNotificationService.test
  */
 
-import { EventEmitter } from 'events';
 import type { PrinterStatus } from '@shared/types/polling.js';
+import { EventEmitter } from 'events';
 import { PrintStateMonitor } from '../../PrintStateMonitor.js';
 import { TemperatureMonitoringService } from '../../TemperatureMonitoringService.js';
 import { DiscordNotificationService } from '../DiscordNotificationService.js';

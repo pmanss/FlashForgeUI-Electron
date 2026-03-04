@@ -5,8 +5,8 @@
  * @module main/services/calibration/__tests__/TapeCalculator.test
  */
 
-import { BedCorner, DEFAULT_TAPE_CONFIG } from '../../../../shared/types/calibration';
 import type { BedConfig, TapeConfig } from '../../../../shared/types/calibration';
+import { BedCorner, DEFAULT_TAPE_CONFIG } from '../../../../shared/types/calibration';
 import { Bed } from '../engine/Bed';
 import { TapeCalculator } from '../engine/TapeCalculator';
 

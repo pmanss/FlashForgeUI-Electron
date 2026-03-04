@@ -93,7 +93,12 @@ export function registerCameraRoutes(router: Router, deps: RouteDependencies): v
             return sendErrorResponse<StandardAPIResponse>(res, 503, 'Camera source type not supported');
           }
 
-          await go2rtcService.addStream(contextId, cameraConfig.streamUrl, cameraConfig.sourceType, cameraConfig.streamType);
+          await go2rtcService.addStream(
+            contextId,
+            cameraConfig.streamUrl,
+            cameraConfig.sourceType,
+            cameraConfig.streamType
+          );
         } catch (streamError) {
           console.error(`[WebUI] Failed to setup stream for context ${contextId}:`, streamError);
           return sendErrorResponse<StandardAPIResponse>(res, 503, 'Failed to setup camera stream');

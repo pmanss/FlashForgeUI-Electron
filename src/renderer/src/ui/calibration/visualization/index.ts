@@ -5,6 +5,8 @@
  * @module renderer/ui/calibration/visualization
  */
 
+export type { RecommendationVisualizerOptions } from './AnimatedRecommendationVisualizer';
+export { AnimatedRecommendationVisualizer } from './AnimatedRecommendationVisualizer';
 export type {
   CellInfo,
   VisualizerEventHandlers,
@@ -29,5 +31,3 @@ export {
 } from './ColorScales';
 export type { ShaperPlotOptions } from './ShaperPlotVisualizer';
 export { ShaperPlotVisualizer } from './ShaperPlotVisualizer';
-export type { RecommendationVisualizerOptions } from './AnimatedRecommendationVisualizer';
-export { AnimatedRecommendationVisualizer } from './AnimatedRecommendationVisualizer';

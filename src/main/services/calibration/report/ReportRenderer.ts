@@ -5,8 +5,8 @@
  * @module main/services/calibration/report/ReportRenderer
  */
 
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { PNG } from 'pngjs';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { AnalysisResult, CalibrationSettings, MeshData, WorkflowData } from '../../../../shared/types/calibration';
 
 type ColorStop = { position: number; color: [number, number, number] };

@@ -188,7 +188,10 @@ kinematics: cartesian
 
     it('should reject mesh with dimension mismatch', () => {
       const validation = parser.validateMeshData({
-        matrix: [[0.1, 0.0], [0.05, 0.0, -0.05]], // Inconsistent columns
+        matrix: [
+          [0.1, 0.0],
+          [0.05, 0.0, -0.05],
+        ], // Inconsistent columns
         minX: 15,
         maxX: 205,
         minY: 15,
@@ -294,7 +297,8 @@ kinematics: cartesian
 
     it('should handle tabs vs spaces in point values', () => {
       // Use actual tab characters
-      const configWithTabs = '#*# [bed_mesh default]\n#*# points =\n#*#\t0.1,\t0.0,\t-0.1\n#*# x_count = 3\n#*# y_count = 1\n#*# min_x = 15.0\n#*# max_x = 205.0\n#*# min_y = 15.0\n#*# max_y = 205.0';
+      const configWithTabs =
+        '#*# [bed_mesh default]\n#*# points =\n#*#\t0.1,\t0.0,\t-0.1\n#*# x_count = 3\n#*# y_count = 1\n#*# min_x = 15.0\n#*# max_x = 205.0\n#*# min_y = 15.0\n#*# max_y = 205.0';
       const result = parser.parseConfigFile(configWithTabs);
       expect(result.success).toBe(true);
       expect(result.data!.matrix[0][0]).toBeCloseTo(0.1, 5);

@@ -5,8 +5,8 @@
  * @module main/services/calibration/__tests__/DeviationAnalyzer.test
  */
 
-import { BedCorner } from '../../../../shared/types/calibration';
 import type { BedConfig } from '../../../../shared/types/calibration';
+import { BedCorner } from '../../../../shared/types/calibration';
 import { Bed } from '../engine/Bed';
 import { DeviationAnalyzer } from '../engine/DeviationAnalyzer';
 

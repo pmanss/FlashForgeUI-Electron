@@ -46,8 +46,8 @@ import {
   type PrinterContext,
   type PrinterContextManager,
 } from '../../managers/PrinterContextManager.js';
-import type { TemperatureMonitoringService } from '../TemperatureMonitoringService.js';
 import type { PrintStateMonitor } from '../PrintStateMonitor.js';
+import type { TemperatureMonitoringService } from '../TemperatureMonitoringService.js';
 
 /**
  * Printer state for Discord notifications
@@ -71,11 +71,7 @@ export class DiscordNotificationService extends EventEmitter {
     string,
     {
       stateMonitor: PrintStateMonitor;
-      printCompletedListener: (event: {
-        contextId: string;
-        jobName: string;
-        status: PrinterStatus;
-      }) => void;
+      printCompletedListener: (event: { contextId: string; jobName: string; status: PrinterStatus }) => void;
       temperatureMonitor?: TemperatureMonitoringService;
       printerCooledListener?: (event: { contextId: string }) => void;
     }
@@ -174,11 +170,7 @@ export class DiscordNotificationService extends EventEmitter {
   ): void {
     this.detachContextMonitors(contextId);
 
-    const printCompletedListener = (event: {
-      contextId: string;
-      jobName: string;
-      status: PrinterStatus;
-    }): void => {
+    const printCompletedListener = (event: { contextId: string; jobName: string; status: PrinterStatus }): void => {
       const duration = event.status.currentJob?.progress.elapsedTimeSeconds;
       void this.notifyPrintComplete(event.contextId, event.jobName, duration);
     };
@@ -671,7 +663,11 @@ export class DiscordNotificationService extends EventEmitter {
           etaDate = new Date(Date.now() + timeRemaining * 60_000); // timeRemaining is minutes
         }
         if (etaDate) {
-          const formattedETA = etaDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          const formattedETA = etaDate.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          });
           fields.push({
             name: 'ETA',
             value: formattedETA,

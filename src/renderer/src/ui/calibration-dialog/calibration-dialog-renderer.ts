@@ -12,8 +12,8 @@ import type {
   CalibrationHistoryEntry,
   MeshData,
   ScrewAdjustment,
-  SSHConnectionConfig,
   ShaperResult,
+  SSHConnectionConfig,
   TapeRecommendation,
   WorkflowData,
 } from '../../../../shared/types/calibration';
@@ -845,8 +845,7 @@ async function updateSSHStatus(): Promise<void> {
     elements.btnSSHDisconnect.disabled = !connected;
     elements.btnFetchSSH.disabled = !connected;
     elements.btnFetchShaperSSH.disabled = !connected;
-    elements.btnUploadShaperConfig.disabled =
-      !connected || !state.shaperResults[state.shaperResults.activeAxis];
+    elements.btnUploadShaperConfig.disabled = !connected || !state.shaperResults[state.shaperResults.activeAxis];
   } catch (error) {
     console.error('Failed to get SSH status:', error);
   }

@@ -164,9 +164,7 @@ export class PrinterNotificationCoordinator extends EventEmitter<CoordinatorEven
       console.log('Notification settings updated:', newSettings);
     }
   };
-  private readonly handleNotificationSent = (
-    event: NotificationEventPayloads['notification-sent']
-  ): void => {
+  private readonly handleNotificationSent = (event: NotificationEventPayloads['notification-sent']): void => {
     this.emit('notification-triggered', event);
   };
 

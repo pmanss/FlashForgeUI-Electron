@@ -5,13 +5,13 @@
  * @module main/services/calibration/__tests__/WorkflowEngine.test
  */
 
+import type { BedConfig, CalibrationSettings } from '../../../../shared/types/calibration';
 import {
   DEFAULT_CALIBRATION_SETTINGS,
   DEFAULT_SCREW_CONFIG,
   DEFAULT_TAPE_CONFIG,
   WorkflowStage,
 } from '../../../../shared/types/calibration';
-import type { BedConfig, CalibrationSettings } from '../../../../shared/types/calibration';
 import { Bed } from '../engine/Bed';
 import { ScrewSolver } from '../engine/ScrewSolver';
 import { TapeCalculator } from '../engine/TapeCalculator';

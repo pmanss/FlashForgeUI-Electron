@@ -41,8 +41,7 @@ export class KlipperConfigParser {
    * Matches lines like: #*#   0.025, 0.012, -0.003
    * Also supports scientific notation: #*#   1e-2, 0.0, -1e-2
    */
-  private readonly pointPattern =
-    /^#\*#\s+(-?\d+\.?\d*(?:[eE][+-]?\d+)?,\s*)*-?\d+\.?\d*(?:[eE][+-]?\d+)?\s*$/;
+  private readonly pointPattern = /^#\*#\s+(-?\d+\.?\d*(?:[eE][+-]?\d+)?,\s*)*-?\d+\.?\d*(?:[eE][+-]?\d+)?\s*$/;
 
   /**
    * Regex pattern to match parameter lines.

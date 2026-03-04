@@ -285,11 +285,7 @@ export class SCPFileTransfer {
   /**
    * Read a fixed number of bytes from the SCP stream.
    */
-  private async readExact(
-    state: SCPChannelState,
-    length: number,
-    onChunk?: (chunk: Buffer) => void
-  ): Promise<Buffer> {
+  private async readExact(state: SCPChannelState, length: number, onChunk?: (chunk: Buffer) => void): Promise<Buffer> {
     const chunks: Buffer[] = [];
     let remaining = length;
 
@@ -369,10 +365,7 @@ export class SCPFileTransfer {
    * Read the next file header from an SCP download stream.
    * Handles optional timestamp records and end markers.
    */
-  private async readNextFileHeader(
-    state: SCPChannelState,
-    stream: SCPChannel
-  ): Promise<SCPFileHeader | null> {
+  private async readNextFileHeader(state: SCPChannelState, stream: SCPChannel): Promise<SCPFileHeader | null> {
     while (true) {
       const control = await this.readByte(state);
 
@@ -561,9 +554,7 @@ export class SCPFileTransfer {
     const targetDirectory = remoteIsDirectory
       ? normalizedRemotePath.replace(/\/+$/, '') || '/'
       : path.posix.dirname(normalizedRemotePath);
-    const targetFilename = remoteIsDirectory
-      ? path.basename(localPath)
-      : path.posix.basename(normalizedRemotePath);
+    const targetFilename = remoteIsDirectory ? path.basename(localPath) : path.posix.basename(normalizedRemotePath);
 
     if (!targetFilename || targetFilename === '.' || targetFilename === '..') {
       return {
@@ -713,9 +704,7 @@ export class SCPFileTransfer {
     );
 
     if (locateResult.exitCode === -1) {
-      throw new Error(
-        locateResult.error || locateResult.stderr.trim() || 'Failed to query calibration CSV files'
-      );
+      throw new Error(locateResult.error || locateResult.stderr.trim() || 'Failed to query calibration CSV files');
     }
 
     const latestPath = locateResult.stdout.trim().split(/\r?\n/)[0];
@@ -758,10 +747,7 @@ export class SCPFileTransfer {
    * @returns True if file exists
    */
   async fileExists(contextId: string, remotePath: string): Promise<boolean> {
-    const result = await this.connectionManager.executeCommand(
-      contextId,
-      `test -e ${this.shellQuote(remotePath)}`
-    );
+    const result = await this.connectionManager.executeCommand(contextId, `test -e ${this.shellQuote(remotePath)}`);
 
     return result.exitCode === 0;
   }
@@ -774,11 +760,7 @@ export class SCPFileTransfer {
    * @param remotePath - Destination path (defaults to printer.cfg location)
    * @returns Transfer result
    */
-  async uploadConfig(
-    contextId: string,
-    content: string,
-    remotePath?: string
-  ): Promise<TransferResult> {
+  async uploadConfig(contextId: string, content: string, remotePath?: string): Promise<TransferResult> {
     await this.ensureCacheDir();
 
     const configuredPath = remotePath?.trim();

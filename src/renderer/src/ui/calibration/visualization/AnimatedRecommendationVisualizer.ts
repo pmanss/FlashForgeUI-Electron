@@ -139,11 +139,7 @@ export class AnimatedRecommendationVisualizer {
     }
   }
 
-  private drawScrewAdjustment(
-    corner: { x: number; y: number },
-    adjustment: ScrewAdjustment,
-    pulse: number
-  ): void {
+  private drawScrewAdjustment(corner: { x: number; y: number }, adjustment: ScrewAdjustment, pulse: number): void {
     const { cwColor, ccwColor, textColor, fontSize } = this.options;
     const color = adjustment.direction === 'CW' ? cwColor : ccwColor;
     const radius = 18 + pulse * 4;
@@ -194,7 +190,11 @@ export class AnimatedRecommendationVisualizer {
     this.ctx.font = `${fontSize}px sans-serif`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'top';
-    this.ctx.fillText(`${recommendation.layers} layer${recommendation.layers === 1 ? '' : 's'}`, corner.x, corner.y + 8);
+    this.ctx.fillText(
+      `${recommendation.layers} layer${recommendation.layers === 1 ? '' : 's'}`,
+      corner.x,
+      corner.y + 8
+    );
   }
 
   private render(timestamp: number): void {

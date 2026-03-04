@@ -5,8 +5,8 @@
  * @module main/services/calibration/__tests__/ScrewSolver.test
  */
 
-import { BedCorner, DEFAULT_SCREW_CONFIG, RotationDirection } from '../../../../shared/types/calibration';
 import type { BedConfig, ScrewConfig } from '../../../../shared/types/calibration';
+import { BedCorner, DEFAULT_SCREW_CONFIG, RotationDirection } from '../../../../shared/types/calibration';
 import { Bed } from '../engine/Bed';
 import { ScrewSolver } from '../engine/ScrewSolver';
 

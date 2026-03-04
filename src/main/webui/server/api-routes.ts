@@ -12,8 +12,8 @@ import { getPrinterConnectionManager } from '../../managers/ConnectionFlowManage
 import { getPrinterBackendManager } from '../../managers/PrinterBackendManager.js';
 import { getPrinterContextManager } from '../../managers/PrinterContextManager.js';
 import { getSpoolmanIntegrationService } from '../../services/SpoolmanIntegrationService.js';
-import { registerCameraRoutes } from './routes/camera-routes.js';
 import { registerCalibrationRoutes } from './routes/calibration-routes.js';
+import { registerCameraRoutes } from './routes/camera-routes.js';
 import { registerContextRoutes } from './routes/context-routes.js';
 import { registerDebugRoutes } from './routes/debug-routes.js';
 import { registerFiltrationRoutes } from './routes/filtration-routes.js';

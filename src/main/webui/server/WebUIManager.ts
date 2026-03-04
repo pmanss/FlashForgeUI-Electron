@@ -45,6 +45,7 @@ import {
 } from './auth-middleware.js';
 import { registerPublicThemeRoutes } from './routes/theme-routes.js';
 import { createSecurityMiddleware } from './security-middleware.js';
+import { createWebUIStaticAssetOptions } from './static-asset-options.js';
 import { getWebSocketManager } from './WebSocketManager.js';
 
 /**
@@ -168,7 +169,7 @@ export class WebUIManager extends EventEmitter {
     console.log(`WebUI serving static files from: ${webUIStaticPath}`);
 
     try {
-      this.expressApp.use(express.static(webUIStaticPath));
+      this.expressApp.use(express.static(webUIStaticPath, createWebUIStaticAssetOptions()));
       console.log('WebUI static file middleware configured successfully');
     } catch (error) {
       console.error('Failed to configure WebUI static file serving:', error);

@@ -13,9 +13,9 @@ import type {
   CalibrationHistoryEntry,
   CalibrationSettings,
   MeshData,
+  ShaperResult,
   SSHConnectionConfig,
   SSHConnectionStatus,
-  ShaperResult,
   TransferResult,
   WorkflowData,
 } from '../../../../shared/types/calibration';

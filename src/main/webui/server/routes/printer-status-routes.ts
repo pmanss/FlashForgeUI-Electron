@@ -84,9 +84,10 @@ export function registerPrinterStatusRoutes(router: Router, deps: RouteDependenc
           ? statusResult.status.estimatedRightLen / 1000
           : undefined;
         // printDuration is raw seconds — convert to minutes for consistency with WebSocket path
-        timeElapsed = statusResult.status.printDuration !== undefined
-          ? Math.round(statusResult.status.printDuration / 60)
-          : undefined;
+        timeElapsed =
+          statusResult.status.printDuration !== undefined
+            ? Math.round(statusResult.status.printDuration / 60)
+            : undefined;
         elapsedTimeSeconds = statusResult.status.printDuration;
         formattedEta = statusResult.status.printEta;
 

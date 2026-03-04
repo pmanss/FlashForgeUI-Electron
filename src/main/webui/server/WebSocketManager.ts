@@ -497,7 +497,8 @@ export class WebSocketManager extends EventEmitter {
       timeElapsed: currentJob?.progress.elapsedTime ?? undefined,
       timeRemaining: currentJob?.progress.timeRemaining ?? undefined,
       formattedEta: currentJob?.progress.formattedEta !== undefined ? currentJob.progress.formattedEta : undefined,
-      elapsedTimeSeconds: currentJob?.progress.elapsedTimeSeconds !== undefined ? currentJob.progress.elapsedTimeSeconds : undefined,
+      elapsedTimeSeconds:
+        currentJob?.progress.elapsedTimeSeconds !== undefined ? currentJob.progress.elapsedTimeSeconds : undefined,
       filtrationMode: filtrationMode,
       // Weight and length from job progress
       estimatedWeight: currentJob?.progress.weightUsed || undefined,

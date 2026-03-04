@@ -8,7 +8,7 @@
 
 import { EventEmitter } from 'events';
 import { Client, type ConnectConfig } from 'ssh2';
-import { SSHConnectionStatus, type SSHConnectionConfig } from '../../../../shared/types/calibration';
+import { type SSHConnectionConfig, SSHConnectionStatus } from '../../../../shared/types/calibration';
 
 /**
  * Active SSH connection state.

@@ -105,24 +105,27 @@ export function registerCalibrationHandlers(): void {
   /**
    * Open file dialog to select input shaper CSV file.
    */
-  ipcMain.handle('calibration:open-shaper-csv-file', async (): Promise<{ content: string; filePath: string } | null> => {
-    const result = await dialog.showOpenDialog({
-      title: 'Open Input Shaper CSV',
-      filters: [
-        { name: 'CSV Files', extensions: ['csv'] },
-        { name: 'All Files', extensions: ['*'] },
-      ],
-      properties: ['openFile'],
-    });
+  ipcMain.handle(
+    'calibration:open-shaper-csv-file',
+    async (): Promise<{ content: string; filePath: string } | null> => {
+      const result = await dialog.showOpenDialog({
+        title: 'Open Input Shaper CSV',
+        filters: [
+          { name: 'CSV Files', extensions: ['csv'] },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+        properties: ['openFile'],
+      });
 
-    if (result.canceled || result.filePaths.length === 0) {
-      return null;
+      if (result.canceled || result.filePaths.length === 0) {
+        return null;
+      }
+
+      const filePath = result.filePaths[0];
+      const content = await fs.readFile(filePath, 'utf-8');
+      return { content, filePath };
     }
-
-    const filePath = result.filePaths[0];
-    const content = await fs.readFile(filePath, 'utf-8');
-    return { content, filePath };
-  });
+  );
 
   /**
    * Open file dialog to select SSH private key file.
@@ -509,19 +512,20 @@ export function registerCalibrationHandlers(): void {
         saveCredentials?: boolean;
       }
     ) => {
-    const data = await manager.getPrinterData(contextId);
-    const updated = {
-      ...data,
-      sshHost: config.host,
-      sshPort: config.port,
-      sshUsername: config.username,
-      sshPassword: config.password,
-      sshKeyPath: config.keyPath,
-      sshConfigPath: config.configPath,
-      sshSaveCredentials: config.saveCredentials ?? true,
-    };
-    await manager.savePrinterData(contextId, updated);
-  });
+      const data = await manager.getPrinterData(contextId);
+      const updated = {
+        ...data,
+        sshHost: config.host,
+        sshPort: config.port,
+        sshUsername: config.username,
+        sshPassword: config.password,
+        sshKeyPath: config.keyPath,
+        sshConfigPath: config.configPath,
+        sshSaveCredentials: config.saveCredentials ?? true,
+      };
+      await manager.savePrinterData(contextId, updated);
+    }
+  );
 
   ipcMain.handle('calibration:clear-ssh-config', async (_event, contextId: string) => {
     const data = await manager.getPrinterData(contextId);

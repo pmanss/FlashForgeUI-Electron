@@ -88,12 +88,7 @@ export class WorkflowEngine {
   /**
    * Create a new WorkflowEngine.
    */
-  constructor(
-    bed: Bed,
-    screwSolver: ScrewSolver,
-    tapeCalculator: TapeCalculator,
-    settings: CalibrationSettings
-  ) {
+  constructor(bed: Bed, screwSolver: ScrewSolver, tapeCalculator: TapeCalculator, settings: CalibrationSettings) {
     this.bed = bed;
     this.screwSolver = screwSolver;
     this.tapeCalculator = tapeCalculator;
