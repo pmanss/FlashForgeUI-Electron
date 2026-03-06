@@ -55,7 +55,6 @@ import {
   getDefaultCheckCode,
   shouldPromptForCheckCode,
 } from '../utils/PrinterUtils.js';
-import { getConfigManager } from './ConfigManager.js';
 import { getLoadingManager } from './LoadingManager.js';
 import { getPrinterBackendManager } from './PrinterBackendManager.js';
 import { getPrinterContextManager } from './PrinterContextManager.js';
@@ -83,7 +82,6 @@ interface ConnectionFlowState {
 }
 
 export class ConnectionFlowManager extends EventEmitter {
-  private readonly configManager = getConfigManager();
   private readonly loadingManager = getLoadingManager();
   private readonly backendManager = getPrinterBackendManager();
   private readonly contextManager = getPrinterContextManager();
@@ -109,11 +107,6 @@ export class ConnectionFlowManager extends EventEmitter {
 
   /** Setup internal event handlers and service event forwarding */
   private setupEventHandlers(): void {
-    // Forward configuration changes
-    this.configManager.on('config:ForceLegacyAPI', (newValue: boolean) => {
-      this.emit('force-legacy-changed', newValue);
-    });
-
     // Forward backend manager events
     this.forwardEvents(this.backendManager, [
       'backend-initialized',
@@ -557,7 +550,6 @@ export class ConnectionFlowManager extends EventEmitter {
       // Step 2: Detect printer family and requirements
       const familyInfo = detectPrinterFamily(tempResult.typeName);
       const clientType = determineClientType(familyInfo.is5MFamily);
-      const ForceLegacyAPI = this.configManager.get('ForceLegacyAPI') || false;
 
       this.emit('printer-type-detected', {
         typeName: tempResult.typeName,
@@ -571,29 +563,7 @@ export class ConnectionFlowManager extends EventEmitter {
           ? tempResult.printerInfo.Name
           : discoveredPrinter.name;
 
-      // Step 3: Handle check code requirements
-      let checkCode = getDefaultCheckCode();
-
-      // Check if this printer has a saved check code
-      const savedCheckCode = this.savedPrinterService.getSavedCheckCode(discoveredPrinter.serialNumber);
-
-      if (savedCheckCode) {
-        console.log('Using saved check code for known printer:', realPrinterName);
-        checkCode = savedCheckCode;
-      } else if (shouldPromptForCheckCode(familyInfo.is5MFamily, undefined, ForceLegacyAPI)) {
-        this.loadingManager.hide();
-
-        const promptedCheckCode = await this.promptForCheckCode(realPrinterName);
-        if (!promptedCheckCode) {
-          this.loadingManager.showError('Printer pairing cancelled', 2000);
-          return { success: false, error: 'Connection cancelled by user' };
-        }
-        checkCode = promptedCheckCode;
-
-        this.loadingManager.show({ message: 'Establishing connection with pairing code...', canCancel: false });
-      }
-
-      // Step 4: Extract and validate printer information
+      // Step 3: Extract and validate printer information
       this.loadingManager.updateMessage('Processing printer details...');
       const modelType = detectPrinterModelType(tempResult.typeName);
 
@@ -614,6 +584,31 @@ export class ConnectionFlowManager extends EventEmitter {
       if (!serialNumber || serialNumber.trim() === '') {
         console.warn('No serial number available, generating fallback');
         serialNumber = `Unknown-${Date.now()}`;
+      }
+
+      // Check if printer already exists to preserve per-printer settings
+      const existingPrinter = this.savedPrinterService.getSavedPrinter(serialNumber);
+      const forceLegacyMode = existingPrinter?.forceLegacyMode ?? false;
+      const resolvedClientType = forceLegacyMode ? 'legacy' : clientType;
+
+      // Step 4: Handle check code requirements
+      let checkCode = getDefaultCheckCode();
+      const savedCheckCode = existingPrinter?.CheckCode ?? this.savedPrinterService.getSavedCheckCode(serialNumber);
+
+      if (savedCheckCode) {
+        console.log('Using saved check code for known printer:', realPrinterName);
+        checkCode = savedCheckCode;
+      } else if (shouldPromptForCheckCode(familyInfo.is5MFamily, undefined, forceLegacyMode)) {
+        this.loadingManager.hide();
+
+        const promptedCheckCode = await this.promptForCheckCode(realPrinterName);
+        if (!promptedCheckCode) {
+          this.loadingManager.showError('Printer pairing cancelled', 2000);
+          return { success: false, error: 'Connection cancelled by user' };
+        }
+        checkCode = promptedCheckCode;
+
+        this.loadingManager.show({ message: 'Establishing connection with pairing code...', canCancel: false });
       }
 
       // Update the discoveredPrinter object with the correct information for connection establishment
@@ -640,7 +635,7 @@ export class ConnectionFlowManager extends EventEmitter {
         tempResult.typeName,
         familyInfo.is5MFamily,
         checkCode,
-        ForceLegacyAPI
+        forceLegacyMode
       );
 
       if (!connectionResult) {
@@ -651,8 +646,6 @@ export class ConnectionFlowManager extends EventEmitter {
       // Step 6: Save printer details
       this.loadingManager.updateMessage('Saving printer details...');
 
-      // Check if printer already exists to preserve per-printer settings
-      const existingPrinter = this.savedPrinterService.getSavedPrinter(serialNumber);
       console.log(
         '[ConnectionFlow] Existing printer check for',
         serialNumber,
@@ -671,7 +664,7 @@ export class ConnectionFlowManager extends EventEmitter {
         IPAddress: discoveredPrinter.ipAddress,
         SerialNumber: serialNumber,
         CheckCode: checkCode,
-        ClientType: ForceLegacyAPI ? 'legacy' : clientType,
+        ClientType: resolvedClientType,
         printerModel: tempResult.typeName,
         modelType,
         commandPort: updatedDiscoveredPrinter.commandPort,
@@ -896,7 +889,7 @@ export class ConnectionFlowManager extends EventEmitter {
         console.log(`Initialized default per-printer settings for ${detailsWithDefaults.Name}`);
       }
 
-      const ForceLegacyAPI = this.configManager.get('ForceLegacyAPI') || false;
+      const forceLegacyMode = detailsWithDefaults.forceLegacyMode ?? false;
       const familyInfo = detectPrinterFamily(detailsWithDefaults.printerModel);
 
       // Create a mock discovered printer for connection establishment
@@ -915,7 +908,7 @@ export class ConnectionFlowManager extends EventEmitter {
         detailsWithDefaults.printerModel,
         familyInfo.is5MFamily,
         detailsWithDefaults.CheckCode,
-        ForceLegacyAPI
+        forceLegacyMode
       );
 
       if (!connectionResult) {
@@ -1194,6 +1187,7 @@ export class ConnectionFlowManager extends EventEmitter {
 
         // Preserve existing saved printer settings if available
         const existingPrinter = this.savedPrinterService.getSavedPrinter(serialNumber);
+        const forceLegacyMode = existingPrinter?.forceLegacyMode ?? false;
 
         // Use explicit check code, fallback to saved value, then default
         const checkCode = spec.checkCode || existingPrinter?.CheckCode || getDefaultCheckCode();
@@ -1207,13 +1201,12 @@ export class ConnectionFlowManager extends EventEmitter {
         };
 
         // Establish final connection
-        const ForceLegacyAPI = this.configManager.get('ForceLegacyAPI') || false;
         const connectionResult = await this.connectionService.establishFinalConnection(
           updatedDiscoveredPrinter,
           tempResult.typeName,
           is5MFamily,
           checkCode,
-          ForceLegacyAPI
+          forceLegacyMode
         );
 
         if (!connectionResult) {
@@ -1232,7 +1225,7 @@ export class ConnectionFlowManager extends EventEmitter {
           IPAddress: spec.ip,
           SerialNumber: serialNumber,
           CheckCode: checkCode,
-          ClientType: spec.type,
+          ClientType: forceLegacyMode ? 'legacy' : spec.type,
           printerModel: tempResult.typeName,
           modelType,
           commandPort: updatedDiscoveredPrinter.commandPort,

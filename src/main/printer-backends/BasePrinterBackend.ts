@@ -8,7 +8,6 @@
  * - Status monitoring and data retrieval
  * - Event emission for backend state changes
  * - Per-printer settings integration (camera, LEDs, legacy mode)
- * - Feature override mechanism for UI-driven capability changes
  *
  * Key exports:
  * - BasePrinterBackend abstract class: Foundation for all backend implementations
@@ -42,7 +41,6 @@ import {
   StatusResult,
 } from '@shared/types/printer-backend/index.js';
 import { EventEmitter } from 'events';
-import { getConfigManager } from '../managers/ConfigManager.js';
 import {
   canOverrideFeature,
   getFeatureOverrideSettingsKey,
@@ -69,13 +67,11 @@ export abstract class BasePrinterBackend extends EventEmitter {
 
   protected primaryClient: FiveMClient | FlashForgeClient;
   protected secondaryClient: FlashForgeClient | null = null;
-  protected readonly configManager = getConfigManager();
 
   private initialized = false;
   private connected = false;
   private features: PrinterFeatureSet | null = null;
   private lastStatusUpdate = new Date();
-  private featureOverrides: Record<string, unknown> = {};
 
   // Per-printer settings
   protected customCameraEnabled: boolean;
@@ -100,68 +96,6 @@ export abstract class BasePrinterBackend extends EventEmitter {
 
     this.primaryClient = options.primaryClient;
     this.secondaryClient = options.secondaryClient || null;
-
-    this.setupEventHandlers();
-    this.loadFeatureOverrides();
-  }
-
-  /**
-   * Setup event handlers for configuration changes
-   */
-  private setupEventHandlers(): void {
-    // Monitor configuration changes that affect features
-    this.configManager.on('configUpdated', (event: { changedKeys: string[] }) => {
-      this.handleConfigUpdate(event.changedKeys);
-    });
-
-    // Monitor specific settings that affect features
-    this.configManager.on('config:CustomCamera', () => {
-      this.updateFeatureOverrides();
-    });
-
-    this.configManager.on('config:CustomCameraUrl', () => {
-      this.updateFeatureOverrides();
-    });
-
-    this.configManager.on('config:CustomLeds', () => {
-      this.updateFeatureOverrides();
-    });
-
-    this.configManager.on('config:ForceLegacyAPI', () => {
-      this.updateFeatureOverrides();
-    });
-  }
-
-  /**
-   * Load current feature overrides from configuration
-   */
-  private loadFeatureOverrides(): void {
-    this.featureOverrides = {
-      customCameraEnabled: this.configManager.get('CustomCamera') || false,
-      customCameraUrl: this.configManager.get('CustomCameraUrl') || '',
-      customLEDControl: this.configManager.get('CustomLeds') || false,
-      ForceLegacyAPI: this.configManager.get('ForceLegacyAPI') || false,
-    };
-  }
-
-  /**
-   * Handle configuration updates that affect features
-   */
-  private handleConfigUpdate(changedKeys: string[]): void {
-    const featureKeys = ['CustomCamera', 'CustomCameraUrl', 'CustomLeds', 'ForceLegacyAPI'];
-    const hasFeatureChanges = changedKeys.some((key) => featureKeys.includes(key));
-
-    if (hasFeatureChanges) {
-      this.updateFeatureOverrides();
-    }
-  }
-
-  /**
-   * Update feature overrides and refresh feature set
-   */
-  private updateFeatureOverrides(): void {
-    this.loadFeatureOverrides();
-    this.rebuildFeatureSet(true);
   }
 
   private rebuildFeatureSet(emitUpdateEvent = false, changedKeys: readonly string[] = []): void {
@@ -173,7 +107,6 @@ export abstract class BasePrinterBackend extends EventEmitter {
 
     this.emitEvent('feature-updated', {
       features: this.features,
-      overrides: this.featureOverrides,
       changedKeys,
     });
   }
@@ -355,7 +288,7 @@ export abstract class BasePrinterBackend extends EventEmitter {
       customCameraEnabled: this.customCameraEnabled,
       customCameraUrl: this.customCameraUrl,
       customLEDControl: this.customLedsEnabled,
-      ForceLegacyAPI: this.forceLegacyMode,
+      forceLegacyMode: this.forceLegacyMode,
     };
   }
 

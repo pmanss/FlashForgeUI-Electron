@@ -8,13 +8,7 @@ import type {
   PrinterFeatureSet,
   StatusResult,
 } from '@shared/types/printer-backend/index.js';
-import { EventEmitter } from 'events';
-import { getConfigManager } from '../../managers/ConfigManager.js';
 import { BasePrinterBackend } from '../BasePrinterBackend.js';
-
-jest.mock('../../managers/ConfigManager.js', () => ({
-  getConfigManager: jest.fn(),
-}));
 
 class TestBackend extends BasePrinterBackend {
   protected getBaseFeatures(): PrinterFeatureSet {
@@ -193,24 +187,6 @@ class TestBackend extends BasePrinterBackend {
 }
 
 describe('BasePrinterBackend', () => {
-  let mockConfigManager: EventEmitter & { get: jest.Mock };
-
-  beforeEach(() => {
-    mockConfigManager = Object.assign(new EventEmitter(), {
-      get: jest.fn().mockImplementation((key: string) => {
-        const values: Record<string, unknown> = {
-          CustomCamera: false,
-          CustomCameraUrl: '',
-          CustomLeds: false,
-          ForceLegacyAPI: false,
-        };
-        return values[key];
-      }),
-    });
-
-    (getConfigManager as jest.Mock).mockReturnValue(mockConfigManager);
-  });
-
   function createBackend(): TestBackend {
     return new TestBackend({
       printerModel: 'generic-legacy',

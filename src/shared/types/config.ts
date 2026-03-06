@@ -21,7 +21,7 @@
  * - WebUI: WebUIEnabled, WebUIPort, WebUIPassword
  * - Integrations: DiscordSync, Spoolman
  * - Themes: DesktopTheme, WebUITheme
- * - Advanced: ForceLegacyAPI, CustomLeds
+ * - Advanced: CustomLeds
  * - Auto-Update: CheckForUpdatesOnLaunch, UpdateChannel, AutoDownloadUpdates
  *
  * @module types/config
@@ -87,7 +87,6 @@ export interface AppConfig {
   readonly CustomCamera: boolean;
   readonly CustomCameraUrl: string;
   readonly CustomLeds: boolean;
-  readonly ForceLegacyAPI: boolean;
   readonly DiscordUpdateIntervalMinutes: number;
   readonly WebUIEnabled: boolean;
   readonly WebUIPort: number;
@@ -126,7 +125,6 @@ export interface MutableAppConfig {
   CustomCamera: boolean;
   CustomCameraUrl: string;
   CustomLeds: boolean;
-  ForceLegacyAPI: boolean;
   DiscordUpdateIntervalMinutes: number;
   WebUIEnabled: boolean;
   WebUIPort: number;
@@ -270,7 +268,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   CustomCamera: false,
   CustomCameraUrl: '',
   CustomLeds: false,
-  ForceLegacyAPI: false,
   DiscordUpdateIntervalMinutes: 5,
   WebUIEnabled: false,
   WebUIPort: 3000,

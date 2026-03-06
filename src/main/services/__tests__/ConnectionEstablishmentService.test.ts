@@ -303,6 +303,134 @@ describe('ConnectionEstablishmentService', () => {
     expect(fiveMClientInstances[0].dispose).toHaveBeenCalled();
   });
 
+  it('uses legacy-only connection path for Adventurer 5M when force legacy mode is enabled', async () => {
+    const service = ConnectionEstablishmentService.getInstance();
+
+    flashForgeClientConfigs.push({
+      initControl: jest.fn().mockResolvedValue(true),
+      getPrinterInfo: jest.fn().mockResolvedValue({
+        TypeName: 'Adventurer 5M',
+        Name: 'A5M',
+        SerialNumber: 'SN-5M-LEGACY',
+      }),
+      dispose: jest.fn().mockResolvedValue(undefined),
+    });
+    flashForgeClientConfigs.push({
+      initControl: jest.fn().mockResolvedValue(true),
+    });
+
+    const result = await service.establishFinalConnection(
+      {
+        name: 'A5M',
+        ipAddress: '192.168.1.51',
+        serialNumber: 'SN-5M-LEGACY',
+      },
+      'Adventurer 5M',
+      true,
+      '5555',
+      true
+    );
+
+    expect(result).toEqual({
+      primaryClient: flashForgeClientInstances[1],
+    });
+    expect(fiveMClientInstances).toHaveLength(0);
+    expect(flashForgeClientInstances[0].dispose).toHaveBeenCalled();
+  });
+
+  it('uses dual-api connection path for Adventurer 5M when force legacy mode is disabled', async () => {
+    const service = ConnectionEstablishmentService.getInstance();
+
+    fiveMClientConfigs.push({
+      initialize: jest.fn().mockResolvedValue(true),
+      initControl: jest.fn().mockResolvedValue(true),
+    });
+    flashForgeClientConfigs.push({
+      initControl: jest.fn().mockResolvedValue(true),
+    });
+
+    const result = await service.establishFinalConnection(
+      {
+        name: 'A5M',
+        ipAddress: '192.168.1.52',
+        serialNumber: 'SN-5M-NEW',
+      },
+      'Adventurer 5M',
+      true,
+      '5555',
+      false
+    );
+
+    expect(result).toEqual({
+      primaryClient: fiveMClientInstances[0],
+      secondaryClient: flashForgeClientInstances[0],
+    });
+  });
+
+  it('uses legacy-only connection path for Adventurer 5M Pro when force legacy mode is enabled', async () => {
+    const service = ConnectionEstablishmentService.getInstance();
+
+    flashForgeClientConfigs.push({
+      initControl: jest.fn().mockResolvedValue(true),
+      getPrinterInfo: jest.fn().mockResolvedValue({
+        TypeName: 'Adventurer 5M Pro',
+        Name: 'A5M Pro',
+        SerialNumber: 'SN-5MP-LEGACY',
+      }),
+      dispose: jest.fn().mockResolvedValue(undefined),
+    });
+    flashForgeClientConfigs.push({
+      initControl: jest.fn().mockResolvedValue(true),
+    });
+
+    const result = await service.establishFinalConnection(
+      {
+        name: 'A5M Pro',
+        ipAddress: '192.168.1.53',
+        serialNumber: 'SN-5MP-LEGACY',
+      },
+      'Adventurer 5M Pro',
+      true,
+      '6666',
+      true
+    );
+
+    expect(result).toEqual({
+      primaryClient: flashForgeClientInstances[1],
+    });
+    expect(fiveMClientInstances).toHaveLength(0);
+    expect(flashForgeClientInstances[0].dispose).toHaveBeenCalled();
+  });
+
+  it('uses dual-api connection path for Adventurer 5M Pro when force legacy mode is disabled', async () => {
+    const service = ConnectionEstablishmentService.getInstance();
+
+    fiveMClientConfigs.push({
+      initialize: jest.fn().mockResolvedValue(true),
+      initControl: jest.fn().mockResolvedValue(true),
+    });
+    flashForgeClientConfigs.push({
+      initControl: jest.fn().mockResolvedValue(true),
+    });
+
+    const result = await service.establishFinalConnection(
+      {
+        name: 'A5M Pro',
+        ipAddress: '192.168.1.54',
+        serialNumber: 'SN-5MP-NEW',
+      },
+      'Adventurer 5M Pro',
+      true,
+      '6666',
+      false
+    );
+
+    expect(result).toEqual({
+      primaryClient: fiveMClientInstances[0],
+      secondaryClient: flashForgeClientInstances[0],
+    });
+  });
+
   it('logs out legacy clients before disposing them', async () => {
     const service = ConnectionEstablishmentService.getInstance();
     const disposedSpy = jest.fn();

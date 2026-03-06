@@ -1,13 +1,8 @@
 import type { PrinterDetails } from '@shared/types/printer.js';
 import { EventEmitter } from 'events';
-import { getConfigManager } from '../ConfigManager.js';
 import { getLoadingManager } from '../LoadingManager.js';
 import { getPrinterBackendManager, PrinterBackendManager } from '../PrinterBackendManager.js';
 import { getPrinterContextManager } from '../PrinterContextManager.js';
-
-jest.mock('../ConfigManager.js', () => ({
-  getConfigManager: jest.fn(),
-}));
 
 jest.mock('../LoadingManager.js', () => ({
   getLoadingManager: jest.fn(),
@@ -18,7 +13,6 @@ jest.mock('../PrinterContextManager.js', () => ({
 }));
 
 describe('PrinterBackendManager', () => {
-  let mockConfigManager: EventEmitter & { get: jest.Mock };
   let mockLoadingManager: EventEmitter;
   let mockContextManager: EventEmitter & {
     getContext: jest.Mock;
@@ -27,9 +21,6 @@ describe('PrinterBackendManager', () => {
   };
 
   beforeEach(() => {
-    mockConfigManager = Object.assign(new EventEmitter(), {
-      get: jest.fn(),
-    });
     mockLoadingManager = new EventEmitter();
     mockContextManager = Object.assign(new EventEmitter(), {
       getContext: jest.fn(),
@@ -37,7 +28,6 @@ describe('PrinterBackendManager', () => {
       updateBackend: jest.fn(),
     });
 
-    (getConfigManager as jest.Mock).mockReturnValue(mockConfigManager);
     (getLoadingManager as jest.Mock).mockReturnValue(mockLoadingManager);
     (getPrinterContextManager as jest.Mock).mockReturnValue(mockContextManager);
     (PrinterBackendManager as any).instance = null;
